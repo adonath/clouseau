@@ -1,0 +1,52 @@
+site_name: clouseau
+repo_url: https://github.com/adonath/clouseau
+site_url: https://adonath.github.io/clouseau
+site_description: A library independent forward pass inspector for neural nets
+site_author: Axel Donath
+edit_uri: edit/main/docs/
+repo_name: adonath/clouseau
+copyright: Maintained by <a href="https://adonath.com">adonath</a>.
+
+nav:
+  - Home: index.md
+  - Modules: modules.md
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: ["clouseau"]
+theme:
+  name: material
+  feature:
+    tabs: true
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: white
+      accent: deep orange
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: black
+      accent: deep orange
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  icon:
+    repo: fontawesome/brands/github
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/adonath/clouseau
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/clouseau
+
+markdown_extensions:
+  - toc:
+      permalink: true
+  - pymdownx.arithmatex:
+      generic: true
