@@ -180,7 +180,7 @@ def add_to_cache_torch(key):
     """Add a intermediate x to the global cache"""
 
     def hook(module, input, output):
-        GLOBAL_CACHE[key] = output.detach().clone()
+        GLOBAL_CACHE[key + PATH_SEP + "forward"] = output.detach().clone()
 
     return hook
 
@@ -240,13 +240,17 @@ class _Inspector:
     def __enter__(self):
         if self.framework == FrameworkEnum.jax:
             wrapped_model = wrap_model_jax(self.model, filter_=self.filter_)
-            return wrapped_model.model
+            return getattr(wrapped_model, "model", wrapped_model)
 
         self.hooks = wrap_model_torch(model=self.model, filter_=self.filter_)
         return self.model
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.path.parent.mkdir(parents=True, exist_ok=True)
+
+        if not GLOBAL_CACHE:
+            log.warning("No arrays were recorded. Check the filter function.")
+
         WRITE_REGISTRY[self.framework](GLOBAL_CACHE, self.path)
         GLOBAL_CACHE.clear()
 
