@@ -12,7 +12,7 @@ from dataclasses import dataclass, is_dataclass
 from enum import Enum
 from functools import cached_property, partial
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Sequence
 
 import jax
 import treescope
@@ -99,7 +99,7 @@ def save_to_safetensors_torch(x, filename):
     save_file_torch(x, filename, metadata=order)
 
 
-def read_from_safetensors(filename, framework, device):
+def read_from_safetensors(filename, framework="numpy", device=None):
     """Read from safetensors"""
     from safetensors import safe_open
 
@@ -127,27 +127,33 @@ def get_node_types(treedef):
     return sorted(node_types, key=lambda x: x.__name__)
 
 
-def wrap_model_torch(model, filter_):
+def wrap_model_torch(model, filter_=None):
     """Wrap model torch"""
+    from torch import nn
     hooks = {}
 
-    def traverse(name, module):
-        if module is None:
+    if filter_ is None:
+        filter_ = lambda p, _: isinstance(_, nn.Module)
+
+    def traverse(path, node):
+        if node is None:
             return
 
-        if filter_(module):
-            hooks[name] = module.register_forward_hook(add_to_cache_torch)
+        if filter_(path, node):
+            name = PATH_SEP.join(path)
+            hooks[name] = node.register_forward_hook(add_to_cache_torch(name))
 
-        for c_name, c_module in model.named_children():
-            traverse(name + SEPARATOR + c_name, c_module)
+        for p, child in node.named_children():
+            traverse((*path, p), child)
 
+    traverse(path=(), node=model)
     return hooks
 
 
 def wrap_model_jax(node, path=(), filter_=None):
     """Recursively apply the clouseau wrapper class"""
     if filter_ is None:
-        filter_ = lambda _: is_dataclass(_)
+        filter_ = lambda p, _: is_dataclass(_)
 
     serializer = _registry_with_keypaths.get(type(node), None)
 
@@ -156,13 +162,53 @@ def wrap_model_jax(node, path=(), filter_=None):
         return node
 
     children, aux = serializer.flatten_with_keys(node)
-    children = [wrap_model_jax(_, (*path, p,), filter_=filter_) for p, _ in children]
+    children = [wrap_model_jax(_, (*path, p), filter_=filter_) for p, _ in children]
     node = serializer.unflatten_func(aux, children)
 
-    if filter_(node):
+    if filter_(path, node):
         return _ClouseauJaxWrapper(node, path=join_path(path))
 
     return node
+
+def add_to_cache_jax(x, key):
+    """Add a intermediate x to the global cache"""
+    GLOBAL_CACHE[key] = x
+    return x
+
+
+def add_to_cache_torch(key):
+    """Add a intermediate x to the global cache"""
+
+    def hook(module, input, output):
+        GLOBAL_CACHE[key] = output.detach().clone()
+
+    return hook
+
+
+@partial(register_dataclass, data_fields=("model",), meta_fields=("path", "call_name"))
+@dataclass
+class _ClouseauJaxWrapper:
+    """Jax module wrapper that applies a callback function after executing the module.
+
+    Parameters
+    ----------
+    model : Callable
+        The JAX model/function to wrap
+    path : str
+        Location of the wrapped module within the pytree.
+    """
+    model: Callable
+    path: str
+    call_name: str = "__call__"
+
+    def __call__(self, *args, **kwargs):
+        x = getattr(self.model, self.call_name)(*args, **kwargs)
+
+        key = self.path + PATH_SEP + self.call_name
+        callback = partial(add_to_cache_jax, key=key)
+
+        jax.experimental.io_callback(callback, x, x)
+        return x
 
 
 WRITE_REGISTRY = {
@@ -191,10 +237,7 @@ class _Inspector:
         message = "The model does not seem to be a PyTorch or JAX model."
         raise ValueError(message)
 
-
     def __enter__(self):
-        GLOBAL_CACHE.clear()
-
         if self.framework == FrameworkEnum.jax:
             wrapped_model = wrap_model_jax(self.model, filter_=self.filter_)
             return wrapped_model.model
@@ -210,43 +253,6 @@ class _Inspector:
         if self.hooks:
             for _, hook in self.hooks.items():
                 hook.remove()
-
-
-def add_to_cache_jax(x, key):
-    """Add a intermediate x to the global cache"""
-    GLOBAL_CACHE[key] = x
-    return x
-
-
-def add_to_cache_torch(x, key):
-    """Add a intermediate x to the global cache"""
-    GLOBAL_CACHE[key] = x.detach()
-
-
-@partial(register_dataclass, data_fields=("model",), meta_fields=("path", "call_name"))
-@dataclass
-class _ClouseauJaxWrapper:
-    """Jax module wrapper that applies a callback function after executing the module.
-
-    Parameters
-    ----------
-    model : Callable
-        The JAX model/function to wrap
-    path : str
-        Location of the wrapped module within the pytree.
-    """
-    model: Callable
-    path: str
-    call_name: str = "__call__"
-
-    def __call__(self, *args, **kwargs):
-        x = getattr(self.model, self.call_name)(*args, **kwargs)
-
-        key = self.path + PATH_SEP + self.call_name
-        callback = partial(add_to_cache_jax, key=key)
-
-        jax.experimental.io_callback(callback, x, x)
-        return x
 
 
 def inspector(model, path=DEFAULT_PATH, filter_=None):
@@ -280,7 +286,7 @@ def inspector(model, path=DEFAULT_PATH, filter_=None):
     return _Inspector(model=model, path=path, filter_=filter_)
 
 
-def magnifier(filename, framework="flax", device=None):
+def magnifier(filename, framework="numpy", device=None):
     """Visualize nested arrays using treescope"""
     data = read_from_safetensors(filename, framework=framework, device=device)
 
