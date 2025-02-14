@@ -6,13 +6,15 @@ Saving arrays to file is a side effect in Jax. See e.g. https://docs.jax.dev/en/
 
 For torch there are forward hooks, see e.g. https://web.stanford.edu/~nanbhas/blog/forward-hooks-pytorch/
 
+
+I both cases Jax / Pytorch it tracks the output of the layer.
 """
 import logging
 from dataclasses import dataclass, is_dataclass
 from enum import Enum
 from functools import cached_property, partial
 from pathlib import Path
-from typing import Callable, Sequence
+from typing import Callable
 
 import jax
 import treescope
@@ -104,7 +106,8 @@ def read_from_safetensors(filename, framework="numpy", device=None):
     from safetensors import safe_open
 
     with safe_open(filename, framework=framework, device=device) as f:
-        keys = dict(sorted(f.metadata().items())).values()
+        # reorder according to metadata, which maps index to key / path
+        keys = dict(sorted(f.metadata().items(), key=lambda _: int(_[0]))).values()
         data = {key: f.get_tensor(key) for key in keys}
 
     return data
