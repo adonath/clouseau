@@ -36,6 +36,21 @@ from clouseau import magnifier
 magnifier(".clouseau/trace.safetensors")
 ```
 
+### Filtering
+Clouseau provides a generic filtering mechanism to filter the layers you are interested in. A filter has the following
+signature:
+
+```python
+def filter_(path, node):
+    return callable(node)
+```
+
+The path is a list of strings, while the node is the layer 
+object. In Pytorch, this is a subclass of `torch.nn.Module`, in Jax it can be any pytree node.
+
+
+### Tipps & Tricks
+With clever filtering you can pinpoint the exact operation you are interested in
 
 
 
