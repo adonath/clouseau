@@ -285,10 +285,14 @@ def inspector(model, path=DEFAULT_PATH, filter_=None):
     >>> import torch
     >>> from clouseau import inspector, magnifier
     >>> model = torch.nn.Linear(10, 5)
-    >>> with inspector(model, "results/") as fmodel:
+    >>> with inspector(model,  path=".clouseau/trace-torch.safetensors") as fmodel:
     ...     out = fmodel(torch.randn(3, 10))
 
-    >>>
+    When working with a Jax / Equinox model, it is important to add `.block_until_ready()`
+    >>> import jax
+    >>> with inspector(model, path=".clouseau/trace-jax.safetensors") as fmodel:
+    ...     fmodel(x, time).block_until_ready()
+
     """
     return _Inspector(model=model, path=path, filter_=filter_)
 
