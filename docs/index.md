@@ -5,4 +5,40 @@
 [![Commit activity](https://img.shields.io/github/commit-activity/m/adonath/clouseau)](https://img.shields.io/github/commit-activity/m/adonath/clouseau)
 [![License](https://img.shields.io/github/license/adonath/clouseau)](https://img.shields.io/github/license/adonath/clouseau)
 
-A library independent forward pass inspector for neural nets
+Clouseau is a tool to record and inspect the forward pass
+of neural networks. It is designed to be used with PyTorch and Jax (others libraries might come later...). It helps you to debug models, transition models from one framework to another, and inspect the inner workings of neural networks.
+
+## Installation
+```bash
+pip install clouseau
+```
+## Usage
+```python
+import torch
+from clouseau import inspector
+
+class MyModel(torch.nn.Module):
+    def forward(self, x):
+        return x + 1
+
+model = MyModel()
+
+with inspector(model) as m:
+    m(torch.randn(1))
+```
+
+This executes the forward pass of the model and record all `forward` operations. You can then inspect the model using:
+
+```python
+
+from clouseau import magnifier
+
+magnifier(".clouseau/trace.safetensors")
+```
+
+
+
+
+
+
+
