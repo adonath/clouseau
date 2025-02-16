@@ -1,1 +1,6 @@
-from .inspector import inspector, magnifier
+from .inspector import (
+    inspector as inspector,
+)
+from .inspector import (
+    magnifier as magnifier,
+)

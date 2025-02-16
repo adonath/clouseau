@@ -9,17 +9,18 @@ For torch there are forward hooks, see e.g. https://web.stanford.edu/~nanbhas/bl
 
 I both cases Jax / Pytorch it tracks the output of the layer.
 """
+
 import logging
 from dataclasses import dataclass, is_dataclass
 from enum import Enum
 from functools import cached_property, partial
 from pathlib import Path
-from typing import Callable
+from typing import Any, Callable
 
 import jax
 import treescope
 from jax._src.tree_util import _registry_with_keypaths
-from jax.tree_util import register_dataclass
+from jax.tree_util import GetAttrKey, SequenceKey, register_dataclass
 from safetensors.flax import save_file as save_file_jax
 from safetensors.torch import save_file as save_file_torch
 
@@ -33,10 +34,15 @@ log = logging.getLogger(__name__)
 GLOBAL_CACHE = {}
 PATH_SEP = "."
 
-#only works in latest jax
-#join_path = partial(keystr, simple=True, separator=PATH_SEP)
+# only works in latest jax
+# join_path = partial(keystr, simple=True, separator=PATH_SEP)
 
-def join_path(path):
+JaxKeys = GetAttrKey | SequenceKey
+AnyArray = Any
+AnyModel = Any
+
+
+def join_path(path: tuple[JaxKeys, ...]) -> str:
     """Join path to Pytree leave"""
     values = [getattr(_, "name", str(getattr(_, "idx", getattr(_, "key", None)))) for _ in path]
     return ".".join(values)
@@ -44,23 +50,26 @@ def join_path(path):
 
 class FrameworkEnum(str, Enum):
     """Framework enum"""
+
     jax = "jax"
     torch = "torch"
 
 
-def is_torch_model(model):
+def is_torch_model(model: AnyModel) -> bool:
     """Check if model is a torch model"""
     try:
         import torch
+
         return isinstance(model, torch.nn.Module)
     except ImportError:
         return False
 
 
-def is_jax_model(model):
+def is_jax_model(model: AnyModel) -> bool:
     """Check if model is a jax model"""
     try:
         import jax
+
         jax.tree.flatten(model)
     except (ImportError, TypeError):
         return False
@@ -68,7 +77,7 @@ def is_jax_model(model):
         return True
 
 
-def unflatten_dict(d, sep="."):
+def unflatten_dict(d: dict[str, Any], sep: str = ".") -> dict[str, Any]:
     """Unflatten dictionary"
 
     Taken from https://stackoverflow.com/a/6037657/19802442
@@ -85,7 +94,7 @@ def unflatten_dict(d, sep="."):
     return result
 
 
-def save_to_safetensors_jax(x, filename):
+def save_to_safetensors_jax(x: dict[str, AnyArray], filename: str | Path) -> None:
     """Safetensors I/O for jax"""
     log.info(f"Writing {filename}")
     # safetensors does not support ordered dicts, see https://github.com/huggingface/safetensors/issues/357
@@ -93,7 +102,7 @@ def save_to_safetensors_jax(x, filename):
     save_file_jax(x, filename, metadata=order)
 
 
-def save_to_safetensors_torch(x, filename):
+def save_to_safetensors_torch(x: dict[str, AnyArray], filename: str | Path) -> None:
     """Safetensors I/O for torch"""
     log.info(f"Writing {filename}")
     # safetensors does not support ordered dicts, see https://github.com/huggingface/safetensors/issues/357
@@ -101,7 +110,7 @@ def save_to_safetensors_torch(x, filename):
     save_file_torch(x, filename, metadata=order)
 
 
-def read_from_safetensors(filename, framework="numpy", device=None):
+def read_from_safetensors(filename: str | Path, framework: str = "numpy", device=None) -> dict[str, Any]:
     """Read from safetensors"""
     from safetensors import safe_open
 
@@ -130,15 +139,16 @@ def get_node_types(treedef):
     return sorted(node_types, key=lambda x: x.__name__)
 
 
-def wrap_model_torch(model, filter_=None):
+def wrap_model_torch(model: AnyModel, filter_: Callable | None = None):
     """Wrap model torch"""
     from torch import nn
+
     hooks = {}
 
     if filter_ is None:
         filter_ = lambda p, _: isinstance(_, nn.Module)
 
-    def traverse(path, node):
+    def traverse(path: tuple[str, ...], node):
         if node is None:
             return
 
@@ -153,7 +163,7 @@ def wrap_model_torch(model, filter_=None):
     return hooks
 
 
-def wrap_model_jax(node, path=(), filter_=None):
+def wrap_model_jax(node, path: tuple[JaxKeys, ...] = (), filter_: Callable | None = None):
     """Recursively apply the clouseau wrapper class"""
     if filter_ is None:
         filter_ = lambda p, _: is_dataclass(_)
@@ -173,16 +183,17 @@ def wrap_model_jax(node, path=(), filter_=None):
 
     return node
 
-def add_to_cache_jax(x, key):
+
+def add_to_cache_jax(x: AnyArray, key: str) -> Any:
     """Add a intermediate x to the global cache"""
     GLOBAL_CACHE[key] = x
     return x
 
 
-def add_to_cache_torch(key):
+def add_to_cache_torch(key: str):
     """Add a intermediate x to the global cache"""
 
-    def hook(module, input, output):
+    def hook(module, input_, output):
         GLOBAL_CACHE[key + PATH_SEP + "forward"] = output.detach().clone()
 
     return hook
@@ -200,6 +211,7 @@ class _ClouseauJaxWrapper:
     path : str
         Location of the wrapped module within the pytree.
     """
+
     model: Callable
     path: str
     call_name: str = "__call__"
@@ -222,7 +234,8 @@ WRITE_REGISTRY = {
 
 class _Inspector:
     """Inspector class that can be used as a context manager."""
-    def __init__(self, model, path=DEFAULT_PATH, filter_=None):
+
+    def __init__(self, model: AnyModel, path: str | Path = DEFAULT_PATH, filter_: Callable | None = None):
         self.model = model
         self.path = Path(path)
         self.filter_ = filter_
@@ -262,7 +275,7 @@ class _Inspector:
                 hook.remove()
 
 
-def inspector(model, path=DEFAULT_PATH, filter_=None):
+def inspector(model: AnyModel, path: str | Path = DEFAULT_PATH, filter_: Callable | None = None) -> _Inspector:
     """Inspect the forward pass of a model
 
     Parameters
@@ -297,13 +310,9 @@ def inspector(model, path=DEFAULT_PATH, filter_=None):
     return _Inspector(model=model, path=path, filter_=filter_)
 
 
-def magnifier(filename, framework="numpy", device=None):
+def magnifier(filename: str | Path, framework: str = "numpy", device=None) -> None:
     """Visualize nested arrays using treescope"""
     data = read_from_safetensors(filename, framework=framework, device=device)
 
     with treescope.active_autovisualizer.set_scoped(treescope.ArrayAutovisualizer()):
         treescope.display(unflatten_dict(data))
-
-
-
-
