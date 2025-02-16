@@ -34,19 +34,18 @@ class Model:
     def __call__(self, x):
         return self.sub_model(x)
 
+
 def test_jax(tmp_path):
     path = tmp_path / "trace.safetensors"
     m = Model(SubModel(Linear(jnp.ones((2, 2)), jnp.ones(2))))
 
     x = jnp.ones((2, 2))
 
-    with inspector(m, path, filter_=lambda _ : isinstance(_, Linear)) as fm:
+    with inspector(m, path, filter_=lambda _: isinstance(_, Linear)) as fm:
         fm(x)
 
     magnifier(path)
 
 
-
 def test_torch():
     pass
-

@@ -9,10 +9,13 @@ Clouseau is a tool to record and inspect the forward pass
 of neural networks. It is designed to be used with PyTorch and Jax (others libraries might come later...). It helps you to debug models, transition models from one framework to another, and inspect the inner workings of neural networks.
 
 ## Installation
+
 ```bash
 pip install clouseau
 ```
+
 ## Usage
+
 ```python
 import torch
 from clouseau import inspector
@@ -37,6 +40,7 @@ magnifier(".clouseau/trace.safetensors")
 ```
 
 ### Filtering
+
 Clouseau provides a generic filtering mechanism to filter the layers you are interested in. A filter has the following
 signature:
 
@@ -45,15 +49,9 @@ def filter_(path, node):
     return callable(node)
 ```
 
-The path is a list of strings, while the node is the layer 
+The path is a list of strings, while the node is the layer
 object. In Pytorch, this is a subclass of `torch.nn.Module`, in Jax it can be any pytree node.
 
-
 ### Tipps & Tricks
+
 With clever filtering you can pinpoint the exact operation you are interested in
-
-
-
-
-
-
