@@ -1,1 +1,1 @@
-::: clouseau.foo
+::: clouseau.inspector
