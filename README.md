@@ -7,7 +7,7 @@
 [![License](https://img.shields.io/github/license/adonath/clouseau)](https://img.shields.io/github/license/adonath/clouseau)
 
 <p align="center">
-<img width="50%" src="https://raw.githubusercontent.com/adonath/clouseau/main/docs/_static/clouseau-logo.jpg" alt="GMMX Logo"/>
+<img width="50%" src="https://raw.githubusercontent.com/adonath/clouseau/main/docs/_static/clouseau-banner.jpg" alt="Clouseau Banner"/>
 </p>
 
 A library independent forward pass inspector for neural nets. The tool is designed to be used with [PyTorch](https://pytorch.org/) and [Jax](https://docs.jax.dev/) (others libraries might come later...).
