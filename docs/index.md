@@ -7,8 +7,8 @@
 
 ![clouseau-banner](_static/clouseau-banner.jpg)
 
-Clouseau is a little tool to basically do on ething: record and inspect the forward pass
-of neural networks in a libraray independent way. It is designed to be used with [PyTorch](https://pytorch.org/)
+Clouseau is a little tool to basically do one thing: record and inspect the forward pass
+of neural networks in a library independent way. It is designed to be used with [PyTorch](https://pytorch.org/)
 and [Jax](https://docs.jax.dev/) (others libraries might come later...).
 It helps you to debug models, transition models from one framework to another (!),
 and inspect the inner workings of neural networks.

@@ -1,13 +1,20 @@
-"""Use a forward hook for Pytorch and  wrapper for jax
+"""Clouseau tracks the forward pass of a model and saves the intermediate arrays to a file.
 
-See e.g. https://github.com/patrick-kidger/equinox/issues/864
+Currently it supports Jax and Pytorch models. They way this is achieved 
+is different for both frameworks.
 
+- For Jax it uses a wrapper class that wraps each (callable) node in the pytree (
+see also https://github.com/patrick-kidger/equinox/issues/864).
 Saving arrays to file is a side effect in Jax. See e.g. https://docs.jax.dev/en/latest/external-callbacks.html
+However the global cache seems acceptable in combination with jax.experimental.io_callback,
+which is explicitly designed for this purpose.
+- For Pytorch it uses a forward hook that is registered on each module.
+See e.g. https://web.stanford.edu/~nanbhas/blog/forward-hooks-pytorch/
+The forward hook is de-registered after the forward pass is done.
 
-For torch there are forward hooks, see e.g. https://web.stanford.edu/~nanbhas/blog/forward-hooks-pytorch/
 
-
-I both cases Jax / Pytorch it tracks the output of the layer.
+In both cases Jax / Pytorch it tracks the output of the layer. I might add tracking 
+of the inputs as well later.
 """
 
 import logging
