@@ -28,18 +28,21 @@ Let"s start with a simple example using PyTorch:
 ### PyTorch Example
 
 ```python
+import torch
 from torch import nn
 from clouseau import inspector
-import torch.nn as nn
+from collections import OrderedDict
 
-model = nn.Sequential({
-    "dense1": nn.Linear(764, 100),
-    "act1": nn.ReLU(),
-    "dense2": nn.Linear(100, 50),
-    "act2": nn.ReLU(),
-    "output": nn.Linear(50, 10),
-    "outact": nn.Sigmoid(),
-})
+model = nn.Sequential(
+    OrderedDict([
+        ("dense1", nn.Linear(764, 100)),
+        ("act1", nn.ReLU()),
+        ("dense2", nn.Linear(100, 50)),
+        ("act2", nn.ReLU()),
+        ("output", nn.Linear(50, 10)),
+        ("outact", nn.Sigmoid()),
+    ])
+)
 
 x = torch.randn((764,))
 
@@ -50,7 +53,8 @@ with inspector.tail(model) as m:
 This executes the forward pass of the model and records all `forward` operations. You can then inspect the recorded arrays using:
 
 ```python
-inspector.magnify(".clouseau/trace.safetensors")
+# Only works in interactive sessions such as Jupyter and IPython
+# inspector.magnify(".clouseau/trace.safetensors")
 ```
 
 For PyTorch models the inspector registers a forward hook for each layer that matches the default filter, which is
@@ -68,20 +72,25 @@ Usage is exactly the same as in the example above:
 import jax
 import equinox as eqx
 from clouseau import inspector
+import tempfile
+from pathlib import Path
 
-keys = jax.random.split(jax.random.PRNGKey(918832), 3)
+tmpdir = tempfile.TemporaryDirectory()
+path = Path(tmpdir.name)
+
+keys = jax.random.split(jax.random.PRNGKey(918832), 4)
 
 model = eqx.nn.Sequential([
     eqx.nn.Linear(764, 100, key=keys[0]),
-    jax.nn.relu,
+    eqx.nn.Lambda(jax.nn.relu),
     eqx.nn.Linear(100, 50, key= keys[1]),
-    jax.nn.relu,
+    eqx.nn.Lambda(jax.nn.relu),
     eqx.nn.Linear(50, 10, key=keys[2]),
-    jax.nn.sigmoid,
+    eqx.nn.Lambda(jax.nn.sigmoid),
 ])
-x = jax.random.normal(jax.random.PRNGKey(0), (764,))
+x = jax.random.normal(keys[3], (764,))
 
-with inspector.tail(model, path="activations.safetensors") as m:
+with inspector.tail(model, path=path / "activations.safetensors") as m:
     m(x)
 ```
 
@@ -105,7 +114,7 @@ Now we can use the model above and e.g. only trace the output of the activation 
 def filter_(path, node):
     return node in (jax.nn.relu, jax.nn.sigmoid)
 
-with inspector.tail(model, path=".clouseau/trace-jax-filtered.safetensors", filter_=filter_) as m:
+with inspector.tail(model, path=path / "trace-jax-filtered.safetensors", filter_=filter_) as m:
     m(x)
 ```
 
@@ -115,7 +124,7 @@ Alternatively you can also filter on the content of the path, like so:
 def filter_(path, node):
     return "act" in path
 
-with inspector.tail(model, path=".clouseau/trace-jax-filtered.safetensors", filter_=filter_) as m:
+with inspector.tail(model, path=path / "trace-jax-filtered.safetensors", filter_=filter_) as m:
     m(x)
 
 ```
@@ -130,9 +139,7 @@ in the metadata and re-orders on read. For convenience there is a small wrapper 
 on read:
 
 ```python
-from clouseau import inspector
+from clouseau.io_utils import read_from_safetensors
 
-arrays = inspector.read_from_safetensors(".clouseau/trace-jax-filter.safetensors")
+arrays = read_from_safetensors(path / "activations.safetensors")
 ```
-
--

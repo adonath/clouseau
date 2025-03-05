@@ -54,8 +54,8 @@ from clouseau import inspector
 
 inspector.magnify("activations.safetensors")
 ```
-Which will open the file and generate a hierachical [treescope](https://treescope.readthedocs.io/en/stable/) view of the activations.
 
+Which will open the file and generate a hierachical [treescope](https://treescope.readthedocs.io/en/stable/) view of the activations.
 
 ### PyTorch Example
 
