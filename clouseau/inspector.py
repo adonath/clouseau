@@ -28,12 +28,17 @@ import jax
 import treescope
 from jax._src.tree_util import _registry_with_keypaths
 from jax.tree_util import GetAttrKey, SequenceKey, register_dataclass
-from safetensors.flax import save_file as save_file_jax
-from safetensors.torch import save_file as save_file_torch
+
+from .io_utils import (
+    read_from_safetensors,
+    save_to_safetensors_jax,
+    save_to_safetensors_torch,
+    unflatten_dict,
+)
 
 DEFAULT_PATH = Path.cwd() / ".clouseau" / "trace.safetensors"
 
-__all__ = ["inspector", "magnifier"]
+__all__ = ["magnify", "tail"]
 
 
 log = logging.getLogger(__name__)
@@ -82,51 +87,6 @@ def is_jax_model(model: AnyModel) -> bool:
         return False
     else:
         return True
-
-
-def unflatten_dict(d: dict[str, Any], sep: str = ".") -> dict[str, Any]:
-    """Unflatten dictionary"
-
-    Taken from https://stackoverflow.com/a/6037657/19802442
-    """
-    result = {}
-    for key, value in d.items():
-        parts = key.split(sep)
-        d = result
-        for part in parts[:-1]:
-            if part not in d:
-                d[part] = {}
-            d = d[part]
-        d[parts[-1]] = value
-    return result
-
-
-def save_to_safetensors_jax(x: dict[str, AnyArray], filename: str | Path) -> None:
-    """Safetensors I/O for jax"""
-    log.info(f"Writing {filename}")
-    # safetensors does not support ordered dicts, see https://github.com/huggingface/safetensors/issues/357
-    order = {str(idx): key for idx, key in enumerate(x.keys())}
-    save_file_jax(x, filename, metadata=order)
-
-
-def save_to_safetensors_torch(x: dict[str, AnyArray], filename: str | Path) -> None:
-    """Safetensors I/O for torch"""
-    log.info(f"Writing {filename}")
-    # safetensors does not support ordered dicts, see https://github.com/huggingface/safetensors/issues/357
-    order = {str(idx): key for idx, key in enumerate(x.keys())}
-    save_file_torch(x, filename, metadata=order)
-
-
-def read_from_safetensors(filename: str | Path, framework: str = "numpy", device=None) -> dict[str, Any]:
-    """Read from safetensors"""
-    from safetensors import safe_open
-
-    with safe_open(filename, framework=framework, device=device) as f:
-        # reorder according to metadata, which maps index to key / path
-        keys = dict(sorted(f.metadata().items(), key=lambda _: int(_[0]))).values()
-        data = {key: f.get_tensor(key) for key in keys}
-
-    return data
 
 
 def get_node_types(treedef):
@@ -239,8 +199,8 @@ WRITE_REGISTRY = {
 }
 
 
-class _Inspector:
-    """Inspector class that can be used as a context manager."""
+class _Recorder:
+    """Recorder class that can be used as a context manager."""
 
     def __init__(self, model: AnyModel, path: str | Path = DEFAULT_PATH, filter_: Callable | None = None):
         self.model = model
@@ -282,8 +242,8 @@ class _Inspector:
                 hook.remove()
 
 
-def inspector(model: AnyModel, path: str | Path = DEFAULT_PATH, filter_: Callable | None = None) -> _Inspector:
-    """Inspect the forward pass of a model
+def tail(model: AnyModel, path: str | Path = DEFAULT_PATH, filter_: Callable | None = None) -> _Record:
+    """Tail and record the forward pass of a model
 
     Parameters
     ----------
@@ -305,19 +265,19 @@ def inspector(model: AnyModel, path: str | Path = DEFAULT_PATH, filter_: Callabl
     >>> import torch
     >>> from clouseau import inspector, magnifier
     >>> model = torch.nn.Linear(10, 5)
-    >>> with inspector(model,  path=".clouseau/trace-torch.safetensors") as fmodel:
+    >>> with inspector.tail(model,  path=".clouseau/trace-torch.safetensors") as fmodel:
     ...     out = fmodel(torch.randn(3, 10))
 
     When working with a Jax / Equinox model, it is important to add `.block_until_ready()`
     >>> import jax
-    >>> with inspector(model, path=".clouseau/trace-jax.safetensors") as fmodel:
+    >>> with inspector.tail(model, path=".clouseau/trace-jax.safetensors") as fmodel:
     ...     fmodel(x, time).block_until_ready()
 
     """
-    return _Inspector(model=model, path=path, filter_=filter_)
+    return _Recorder(model=model, path=path, filter_=filter_)
 
 
-def magnifier(filename: str | Path, framework: str = "numpy", device=None) -> None:
+def magnify(filename: str | Path, framework: str = "numpy", device=None) -> None:
     """Visualize nested arrays using treescope"""
     data = read_from_safetensors(filename, framework=framework, device=device)
 
