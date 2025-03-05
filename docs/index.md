@@ -150,8 +150,10 @@ The path is a list of strings, while the node is the layer object. In Pytorch, t
 of `torch.nn.Module`, in Jax it can be any valid node of a PyTree.
 
 `clouseau` provide a little helper function to read from the safetensors file. This is important because
-safetenso files do not conserve the order of the tensors. As a workaround `clouseau`stores the order
-in the metadata and re-orders on read.
+safetensor files do not conserve the order of the tensors. However typically it is desired to inspect
+the outputs of the layers in the order they were called. As a workaround `clouseau`stores the order
+in the metadata and re-orders on read. For convenience there is a small wrapper the pre-serves the order
+on read:
 
 ```python
 from clouseau import inspector
@@ -159,7 +161,4 @@ from clouseau import inspector
 arrays = inspector.read_from_safetensors(".clouseau/trace-jax-filter.safetensors")
 ```
 
-### Tipps & Tricks
-
-With clever filtering you can pinpoint the exact operation you are interested in. Here are some ideas
-on the a possible strategys:
+-

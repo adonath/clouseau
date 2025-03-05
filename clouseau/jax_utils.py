@@ -9,6 +9,7 @@ from jax.tree_util import GetAttrKey, SequenceKey, register_dataclass
 from .io_utils import PATH_SEP
 
 JaxKeys = Union[GetAttrKey, SequenceKey]  # type: ignore[no-any-unimported]
+
 AnyArray = Any
 
 CACHE = {}
