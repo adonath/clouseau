@@ -66,49 +66,23 @@ Usage is exactly the same as in the example above:
 
 ```python
 import jax
-from jax.tree_util import register_dataclass
-from dataclasses import dataclass
+import equinox as eqx
 from clouseau import inspector
 
-@register_dataclass
-@dataclass
-class Linear:
-    """Linear layer"""
-    weight: jax.Array
-    bias: jax.Array | None = None
+keys = jax.random.split(jax.random.PRNGKey(918832), 3)
 
-    @classmethod
-    def init(cls, dim_in, dim_out, key, use_bias=True):
-        """Create linear layer from config arguments"""
-        weight = jax.random.normal(key, (dim_in, dim_out))
-        bias = jnp.zeros(dim_out) if use_bias else None
-        return cls(weight=weight, bias=bias)
+model = eqx.nn.Sequential([
+    eqx.nn.Linear(764, 100, key=keys[0]),
+    jax.nn.relu,
+    eqx.nn.Linear(100, 50, key= keys[1]),
+    jax.nn.relu,
+    eqx.nn.Linear(50, 10, key=keys[2]),
+    jax.nn.sigmoid,
+])
+x = jax.random.normal(jax.random.PRNGKey(0), (764,))
 
-    def __call__(self, x: jax.Array) -> jax.Array:
-        x = jnp.matmul(x, self.weight.mT)
-
-        if self.bias is not None:
-            x = x + self.bias
-
-        return x
-
-keys = jax.random.split(jax.random.PRNGKey(0), 3)
-
-model = {
-    "dense1": Linear.init(764, 100, keys[0]),
-    "act1": jax.nn.relu,
-    "dense2": Linear.init(100, 50, keys[1]),
-    "act2": jax.nn.relu,
-    "output": Linear.init(50, 10, keys[2]),
-    "outact": jax.nn.sigmoid,
-}
-
-x = jax.random.normal(jax.random.PRNGKey(3), (764,))
-
-
-with inspector.tail(model, path=".clouseau/trace-jax.safetensors") as m:
+with inspector.tail(model, path="activations.safetensors") as m:
     m(x)
-
 ```
 
 You can also provide a custom path to the `tail` function, which will be used to store the safetensors file.
