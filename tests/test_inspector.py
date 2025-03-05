@@ -84,11 +84,11 @@ def test_jax(tmp_path):
 
     x = jnp.ones((2, 2))
 
-    with inspector.tail(m, path, filter_=lambda p, _: isinstance(_, Linear)) as fm:
+    with inspector.tail(m, path, filter_=lambda p, _: isinstance(_, (Linear, SubModel))) as fm:
         fm(x)
 
     data = inspector.read_from_safetensors(path, framework="jax")
-    assert "sub_model.linear.__call__" in data
+    assert tuple(data.keys()) == ('sub_model.linear.__call__', 'sub_model.__call__')
 
 
 def test_torch(tmp_path):
@@ -98,11 +98,11 @@ def test_torch(tmp_path):
 
     x = torch.ones((2, 2))
 
-    with inspector.tail(m, path, filter_=lambda p, _: isinstance(_, torch.nn.Linear)) as fm:
+    with inspector.tail(m, path, filter_=lambda p, _: isinstance(_, (torch.nn.Linear, TorchSubModel))) as fm:
         fm(x)
 
     data = inspector.read_from_safetensors(path, framework="torch")
-    assert "sub_model.linear.forward" in data
+    assert tuple(data.keys()) == ('sub_model.linear.forward', 'sub_model.forward')
 
 
 def test_equinox(tmp_path):
@@ -111,11 +111,11 @@ def test_equinox(tmp_path):
 
     x = jnp.ones((2, 2))
 
-    with inspector.tail(m, path, filter_=lambda p, _: isinstance(_, eqx.nn.Linear)) as fm:
+    with inspector.tail(m, path, filter_=lambda p, _: isinstance(_, (eqx.nn.Linear, EqxSubModel))) as fm:
         fm(x)
 
     data = inspector.read_from_safetensors(path, framework="jax")
-    assert "sub_model.linear.__call__" in data
+    assert tuple(data.keys()) == ('sub_model.linear.__call__', 'sub_model.__call__')
 
 
 
