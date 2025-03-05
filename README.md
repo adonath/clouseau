@@ -31,13 +31,15 @@ import jax
 import equinox as eqx
 from clouseau import inspector
 
+keys = jax.random.split(jax.random.PRNGKey(918832), 3)
+
 model = eqx.nn.Sequential([
-    eqx.nn.Linear(764, 100),
-    eqx.nn.ReLU(),
-    eqx.nn.Linear(100, 50),
-    eqx.nn.ReLU(),
-    eqx.nn.Linear(50, 10),
-    eqx.nn.Sigmoid(),
+    eqx.nn.Linear(764, 100, keys[0]),
+    jax.nn.relu,
+    eqx.nn.Linear(100, 50, keys[0]),
+    jax.nn.relu,
+    eqx.nn.Linear(50, 10, keys[0]),
+    jax.nn.sigmoid,
 ])
 x = jax.random.normal(jax.random.PRNGKey(0), (764,))
 
