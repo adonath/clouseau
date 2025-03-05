@@ -6,11 +6,14 @@ from typing import Any, Callable
 import jax
 from jax._src.tree_util import _registry_with_keypaths
 from jax.tree_util import GetAttrKey, SequenceKey, register_dataclass
+from requests import get
+
+from .io_utils import PATH_SEP
 
 JaxKeys = GetAttrKey | SequenceKey
 AnyArray = Any
 
-JAX_CACHE = {}
+CACHE = {}
 
 # only works in latest jax
 # join_path = partial(keystr, simple=True, separator=PATH_SEP)
@@ -39,11 +42,11 @@ def get_node_types(treedef):
 
 def add_to_cache_jax(x: AnyArray, key: str) -> Any:
     """Add a intermediate x to the global cache"""
-    JAX_CACHE[key] = x
+    CACHE[key] = x
     return x
 
 
-def wrap_model_jax(node, path: tuple[JaxKeys, ...] = (), filter_: Callable | None = None):
+def wrap_model_helper(node, path: tuple[JaxKeys, ...] = (), filter_: Callable | None = None):
     """Recursively apply the clouseau wrapper class"""
     if filter_ is None:
         filter_ = lambda p, _: callable(_)
@@ -55,7 +58,7 @@ def wrap_model_jax(node, path: tuple[JaxKeys, ...] = (), filter_: Callable | Non
         return node
 
     children, aux = serializer.flatten_with_keys(node)
-    children = [wrap_model_jax(_, (*path, p), filter_=filter_) for p, _ in children]
+    children = [wrap_model_helper(_, (*path, p), filter_=filter_) for p, _ in children]
     node = serializer.unflatten_func(aux, children)
 
     if filter_(path, node):
@@ -64,7 +67,12 @@ def wrap_model_jax(node, path: tuple[JaxKeys, ...] = (), filter_: Callable | Non
     return node
 
 
-@partial(register_dataclass, data_fields=("model",), meta_fields=("path", "call_name"))
+def wrap_model(model, filter_=None):
+    """Wrap model jax"""
+    model = wrap_model_helper(model, filter_=filter_)
+    return getattr(model, "_model", model), None
+
+@partial(register_dataclass, data_fields=("_model",), meta_fields=("path", "call_name"))
 @dataclass
 class _ClouseauJaxWrapper:
     """Jax module wrapper that applies a callback function after executing the module.
@@ -77,12 +85,12 @@ class _ClouseauJaxWrapper:
         Location of the wrapped module within the pytree.
     """
 
-    model: Callable
+    _model: Callable
     path: str
     call_name: str = "__call__"
 
     def __call__(self, *args, **kwargs):
-        x = getattr(self.model, self.call_name)(*args, **kwargs)
+        x = getattr(self._model, self.call_name)(*args, **kwargs)
 
         key = self.path + PATH_SEP + self.call_name
         callback = partial(add_to_cache_jax, key=key)

@@ -16,8 +16,9 @@ __all__ = [
 
 AnyArray = Any
 
+PATH_SEP = "."
 
-def unflatten_dict(d: dict[str, Any], sep: str = ".") -> dict[str, Any]:
+def unflatten_dict(d: dict[str, Any], sep: str = PATH_SEP) -> dict[str, Any]:
     """Unflatten dictionary"
 
     Taken from https://stackoverflow.com/a/6037657/19802442

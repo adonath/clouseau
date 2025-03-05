@@ -1,12 +1,23 @@
 
+from collections.abc import Callable
+
+from torch import nn
+
+from .io_utils import PATH_SEP
+
+CACHE = {}
+
+def add_to_cache_torch(key: str):
+    """Add a intermediate x to the global cache"""
+
+    def hook(module, input_, output):
+        CACHE[key + PATH_SEP + "forward"] = output.detach().clone()
+
+    return hook
 
 
-
-
-def wrap_model_torch(model: AnyModel, filter_: Callable | None = None):
+def wrap_model(model: nn.Module, filter_: Callable | None = None):
     """Wrap model torch"""
-    from torch import nn
-
     hooks = {}
 
     if filter_ is None:
@@ -24,13 +35,5 @@ def wrap_model_torch(model: AnyModel, filter_: Callable | None = None):
             traverse((*path, p), child)
 
     traverse(path=(), node=model)
-    return hooks
+    return model, hooks
 
-
-def add_to_cache_torch(key: str):
-    """Add a intermediate x to the global cache"""
-
-    def hook(module, input_, output):
-        GLOBAL_CACHE[key + PATH_SEP + "forward"] = output.detach().clone()
-
-    return hook

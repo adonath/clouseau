@@ -19,7 +19,6 @@ of the inputs as well later.
 
 import logging
 from enum import Enum
-from functools import cached_property
 from pathlib import Path
 from typing import Any, Callable
 
@@ -94,9 +93,9 @@ class _Recorder:
         self.path = Path(path)
         self.filter_ = filter_
         self.hooks = None
-        self.cache = None
+        self.cache = {}
 
-    @cached_property
+    @property
     def framework(self):
         """Determine framework"""
 
@@ -110,11 +109,13 @@ class _Recorder:
 
     def __enter__(self):
         if self.framework == FrameworkEnum.jax:
-            wrapped_model = wrap_model_jax(self.model, filter_=self.filter_)
-            return getattr(wrapped_model, "model", wrapped_model)
+            from . import jax_utils as utils
+        elif self.framework == FrameworkEnum.torch:
+            from . import torch_utils as utils
 
-        self.hooks = wrap_model_torch(model=self.model, filter_=self.filter_)
-        return self.model
+        self.cache = utils.CACHE
+        wrapped_model, self.hooks = utils.wrap_model(model=self.model, filter_=self.filter_)
+        return wrapped_model
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -123,7 +124,7 @@ class _Recorder:
             log.warning("No arrays were recorded. Check the filter function.")
 
         WRITE_REGISTRY[self.framework](self.cache, self.path)
-        GLOBAL_CACHE.clear()
+        self.cache.clear()
 
         if self.hooks:
             for _, hook in self.hooks.items():
