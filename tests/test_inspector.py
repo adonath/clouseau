@@ -4,7 +4,7 @@ import jax
 import jax.numpy as jnp
 from jax.tree_util import register_dataclass
 
-from clouseau import inspector, magnifier
+from clouseau import inspector
 
 
 @register_dataclass
@@ -41,11 +41,16 @@ def test_jax(tmp_path):
 
     x = jnp.ones((2, 2))
 
-    with inspector(m, path, filter_=lambda _: isinstance(_, Linear)) as fm:
+    with inspector.tail(m, path, filter_=lambda p, _: isinstance(_, Linear)) as fm:
         fm(x)
 
-    magnifier(path)
+    data = inspector.read_from_safetensors(path, framework="jax")
+    assert "sub_model.linear.__call__" in data
 
 
 def test_torch():
-    pass
+    ...
+
+
+def test_equinox():
+    ...

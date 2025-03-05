@@ -242,7 +242,7 @@ class _Recorder:
                 hook.remove()
 
 
-def tail(model: AnyModel, path: str | Path = DEFAULT_PATH, filter_: Callable | None = None) -> _Record:
+def tail(model: AnyModel, path: str | Path = DEFAULT_PATH, filter_: Callable | None = None) -> _Recorder:
     """Tail and record the forward pass of a model
 
     Parameters
