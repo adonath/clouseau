@@ -41,7 +41,7 @@ model = eqx.nn.Sequential([
 ])
 x = jax.random.normal(jax.random.PRNGKey(0), (764,))
 
-with inspector.tail(model) as m:
+with inspector.tail(model, path="activations.safetensors") as m:
     m(x)
 ```
 
@@ -50,8 +50,10 @@ Then in an interactive session inspect the recorded activations:
 ```python
 from clouseau import inspector
 
-inspector.magnify()
+inspector.magnify("activations.safetensors")
 ```
+Which will open the file and generate a hierachical [treescope](https://treescope.readthedocs.io/en/stable/) view of the activations.
+
 
 ### PyTorch Example
 
