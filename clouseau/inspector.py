@@ -1,6 +1,6 @@
 """Clouseau tracks the forward pass of a model and saves the intermediate arrays to a file.
 
-Currently it supports Jax and Pytorch models. They way this is achieved 
+Currently it supports Jax and Pytorch models. They way this is achieved
 is different for both frameworks.
 
 - For Jax it uses a wrapper class that wraps each (callable) node in the pytree (
@@ -13,7 +13,7 @@ See e.g. https://web.stanford.edu/~nanbhas/blog/forward-hooks-pytorch/
 The forward hook is de-registered after the forward pass is done.
 
 
-In both cases Jax / Pytorch it tracks the output of the layer. I might add tracking 
+In both cases Jax / Pytorch it tracks the output of the layer. I might add tracking
 of the inputs as well later.
 """
 
@@ -56,7 +56,10 @@ AnyModel = Any
 
 def join_path(path: tuple[JaxKeys, ...]) -> str:
     """Join path to Pytree leave"""
-    values = [getattr(_, "name", str(getattr(_, "idx", getattr(_, "key", None)))) for _ in path]
+    values = [
+        getattr(_, "name", str(getattr(_, "idx", getattr(_, "key", None))))
+        for _ in path
+    ]
     return ".".join(values)
 
 
@@ -130,7 +133,9 @@ def wrap_model_torch(model: AnyModel, filter_: Callable | None = None):
     return hooks
 
 
-def wrap_model_jax(node, path: tuple[JaxKeys, ...] = (), filter_: Callable | None = None):
+def wrap_model_jax(
+    node, path: tuple[JaxKeys, ...] = (), filter_: Callable | None = None
+):
     """Recursively apply the clouseau wrapper class"""
     if filter_ is None:
         filter_ = lambda p, _: is_dataclass(_)
@@ -202,7 +207,12 @@ WRITE_REGISTRY = {
 class _Recorder:
     """Recorder class that can be used as a context manager."""
 
-    def __init__(self, model: AnyModel, path: str | Path = DEFAULT_PATH, filter_: Callable | None = None):
+    def __init__(
+        self,
+        model: AnyModel,
+        path: str | Path = DEFAULT_PATH,
+        filter_: Callable | None = None,
+    ):
         self.model = model
         self.path = Path(path)
         self.filter_ = filter_
@@ -242,7 +252,9 @@ class _Recorder:
                 hook.remove()
 
 
-def tail(model: AnyModel, path: str | Path = DEFAULT_PATH, filter_: Callable | None = None) -> _Recorder:
+def tail(
+    model: AnyModel, path: str | Path = DEFAULT_PATH, filter_: Callable | None = None
+) -> _Recorder:
     """Tail and record the forward pass of a model
 
     Parameters

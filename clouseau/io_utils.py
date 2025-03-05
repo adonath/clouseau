@@ -16,6 +16,7 @@ __all__ = [
 
 AnyArray = Any
 
+
 def unflatten_dict(d: dict[str, Any], sep: str = ".") -> dict[str, Any]:
     """Unflatten dictionary"
 
@@ -49,7 +50,9 @@ def save_to_safetensors_torch(x: dict[str, AnyArray], filename: str | Path) -> N
     save_file_torch(x, filename, metadata=order)
 
 
-def read_from_safetensors(filename: str | Path, framework: str = "numpy", device=None) -> dict[str, Any]:
+def read_from_safetensors(
+    filename: str | Path, framework: str = "numpy", device=None
+) -> dict[str, Any]:
     """Read from safetensors"""
     from safetensors import safe_open
 

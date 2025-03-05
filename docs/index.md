@@ -14,6 +14,7 @@ It helps you to debug models, transition models from one framework to another (!
 and inspect the inner workings of neural networks.
 
 ## Installation
+
 Clouseau is available on PyPI and can be installed with:
 
 ```bash
@@ -21,6 +22,7 @@ python -m pip install clouseau
 ```
 
 ## Usage
+
 Let"s start with a simple example using PyTorch:
 
 ### PyTorch Example
@@ -50,10 +52,10 @@ This executes the forward pass of the model and records all `forward` operations
 ```python
 inspector.magnify(".clouseau/trace.safetensors")
 ```
+
 For PyTorch models the inspector registers a forward hook for each layer that matches the default filter, which is
 `isinstance(node, torch.nn.Module)`. It adds all array to a global cache, and finally writes the cache
 to a [safetensors]() file, on exiting the context manager. After writing the file, the cache is cleared.
-
 
 ### Jax Example
 
@@ -84,10 +86,10 @@ class Linear:
 
     def __call__(self, x: jax.Array) -> jax.Array:
         x = jnp.matmul(x, self.weight.mT)
-        
+
         if self.bias is not None:
             x = x + self.bias
-        
+
         return x
 
 keys = jax.random.split(jax.random.PRNGKey(0), 3)
@@ -113,7 +115,6 @@ You can also provide a custom path to the `surveil` function, which will be used
 As the wrapper is also a PyTree node itself it can be used in any PyTree context. Thus it should also be compatible
 with libraries such as [Equinox](https://docs.kidger.site/equinox/).
 
-
 ### Filtering
 
 Clouseau provides a generic filtering mechanism to filter the layers you are interested in. A filter function
@@ -125,6 +126,7 @@ def filter_(path, node):
 ```
 
 Now we can use the model above and e.g. only trace the output of the activation functions:
+
 ```python
 def filter_(path, node):
     return node in (jax.nn.relu, jax.nn.sigmoid)
@@ -132,7 +134,9 @@ def filter_(path, node):
 with inspector.surveil(model, path=".clouseau/trace-jax-filtered.safetensors", filter_=filter_) as m:
     m(x)
 ```
+
 Alternatively you can also filter on the content of the path, like so:
+
 ```python
 def filter_(path, node):
     return "act" in path
@@ -141,13 +145,13 @@ with inspector.surveil(model, path=".clouseau/trace-jax-filtered.safetensors", f
     m(x)
 
 ```
-The path is a list of strings, while the node is the layer object. In Pytorch, this is a subclass
-of `torch.nn.Module`, in Jax it can be any valid node of a PyTree. 
 
+The path is a list of strings, while the node is the layer object. In Pytorch, this is a subclass
+of `torch.nn.Module`, in Jax it can be any valid node of a PyTree.
 
 `clouseau` provide a little helper function to read from the safetensors file. This is important because
 safetenso files do not conserve the order of the tensors. As a workaround `clouseau`stores the order
-in the metadata and re-orders on read. 
+in the metadata and re-orders on read.
 
 ```python
 from clouseau import inspector

@@ -44,8 +44,8 @@ with inspector.surveil(model) as m:
 
 ```
 
-
 ### PyTorch Example
+
 ```python
 from torch import nn
 from clouseau import inspector
@@ -66,6 +66,3 @@ with inspector.surveil(model) as m:
 ```
 
 For more advanced usage including filtering layer types, please refer to the [documentation](https://adonath.github.io/clouseau/).
-
-
-
