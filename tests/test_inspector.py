@@ -1,10 +1,11 @@
 from dataclasses import dataclass
 
+import equinox as eqx
 import jax
 import jax.numpy as jnp
 import torch
 from jax.tree_util import register_dataclass
-from torch import nn as torch_nn
+from regex import E
 
 from clouseau import inspector
 
@@ -37,21 +38,43 @@ class Model:
         return self.sub_model(x)
 
 
-class TorchSubModel(torch_nn.Module):
+class TorchSubModel(torch.nn.Module):
     def __init__(self):
         super().__init__()
-        self.linear = torch_nn.Linear(2, 2)
+        self.linear = torch.nn.Linear(2, 2)
 
     def forward(self, x):
         return self.linear(x)
 
 
-class TorchModel(torch_nn.Module):
+class TorchModel(torch.nn.Module):
     def __init__(self):
         super().__init__()
         self.sub_model = TorchSubModel()
 
     def forward(self, x):
+        return self.sub_model(x)
+
+
+class EqxSubModel(eqx.Module):
+    linear: eqx.nn.Linear
+
+    def __init__(self):
+        super().__init__()
+        self.linear = eqx.nn.Linear(2, 2, key=jax.random.PRNGKey(0))
+
+    def __call__(self, x):
+        return self.linear(x)
+
+
+class EqxModel(eqx.Module):
+    sub_model: EqxSubModel
+
+    def __init__(self):
+        super().__init__()
+        self.sub_model = EqxSubModel()
+
+    def __call__(self, x):
         return self.sub_model(x)
 
 
@@ -75,7 +98,7 @@ def test_torch(tmp_path):
 
     x = torch.ones((2, 2))
 
-    with inspector.tail(m, path, filter_=lambda p, _: isinstance(_, torch_nn.Linear)) as fm:
+    with inspector.tail(m, path, filter_=lambda p, _: isinstance(_, torch.nn.Linear)) as fm:
         fm(x)
 
     data = inspector.read_from_safetensors(path, framework="torch")
@@ -84,11 +107,11 @@ def test_torch(tmp_path):
 
 def test_equinox(tmp_path):
     path = tmp_path / "trace.safetensors"
-    m = Model(SubModel(Linear(jnp.ones((2, 2)), jnp.ones(2))))
+    m = EqxModel()
 
     x = jnp.ones((2, 2))
 
-    with inspector.tail(m, path, filter_=lambda p, _: isinstance(_, Linear)) as fm:
+    with inspector.tail(m, path, filter_=lambda p, _: isinstance(_, eqx.nn.Linear)) as fm:
         fm(x)
 
     data = inspector.read_from_safetensors(path, framework="jax")
