@@ -22,7 +22,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Callable
 
-import treescope
+import treescope  # type: ignore[import-untyped]
 
 from .io_utils import (
     read_from_safetensors,
@@ -73,7 +73,6 @@ def is_jax_model(model: AnyModel) -> bool:
         return True
 
 
-
 WRITE_REGISTRY = {
     "jax": save_to_safetensors_jax,
     "torch": save_to_safetensors_torch,
@@ -87,16 +86,16 @@ class _Recorder:
         self,
         model: AnyModel,
         path: str | Path = DEFAULT_PATH,
-        filter_: Callable | None = None,
+        filter_: Callable[[list[str], Any], bool] | None = None,
     ):
         self.model = model
         self.path = Path(path)
         self.filter_ = filter_
         self.hooks = None
-        self.cache = {}
+        self.cache: dict[str, Any] = {}
 
     @property
-    def framework(self):
+    def framework(self) -> FrameworkEnum:
         """Determine framework"""
 
         if is_torch_model(self.model):
@@ -107,17 +106,24 @@ class _Recorder:
         message = "The model does not seem to be a PyTorch or JAX model."
         raise ValueError(message)
 
-    def __enter__(self):
+    def __enter__(self) -> AnyModel:
         if self.framework == FrameworkEnum.jax:
             from . import jax_utils as utils
         elif self.framework == FrameworkEnum.torch:
-            from . import torch_utils as utils
+            from . import torch_utils as utils  # type: ignore[no-redef]
 
         self.cache = utils.CACHE
-        wrapped_model, self.hooks = utils.wrap_model(model=self.model, filter_=self.filter_)
+        wrapped_model, self.hooks = utils.wrap_model(
+            model=self.model, filter_=self.filter_
+        )
         return wrapped_model
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: Any,
+    ) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
 
         if not self.cache:
@@ -132,7 +138,9 @@ class _Recorder:
 
 
 def tail(
-    model: AnyModel, path: str | Path = DEFAULT_PATH, filter_: Callable | None = None
+    model: AnyModel,
+    path: str | Path = DEFAULT_PATH,
+    filter_: Callable[[Any, Any], bool] | None = None,
 ) -> _Recorder:
     """Tail and record the forward pass of a model
 
@@ -168,7 +176,7 @@ def tail(
     return _Recorder(model=model, path=path, filter_=filter_)
 
 
-def magnify(filename: str | Path, framework: str = "numpy", device=None) -> None:
+def magnify(filename: str | Path, framework: str = "numpy", device: Any = None) -> None:
     """Visualize nested arrays using treescope"""
     data = read_from_safetensors(filename, framework=framework, device=device)
 

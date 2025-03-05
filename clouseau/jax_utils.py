@@ -1,33 +1,35 @@
-
 from dataclasses import dataclass
 from functools import partial
-from typing import Any, Callable
+from typing import Any, Callable, Union
 
 import jax
 from jax._src.tree_util import _registry_with_keypaths
 from jax.tree_util import GetAttrKey, SequenceKey, register_dataclass
-from requests import get
 
 from .io_utils import PATH_SEP
 
-JaxKeys = GetAttrKey | SequenceKey
+JaxKeys = Union[GetAttrKey, SequenceKey]  # type: ignore[no-any-unimported]
 AnyArray = Any
 
 CACHE = {}
+
 
 # only works in latest jax
 # join_path = partial(keystr, simple=True, separator=PATH_SEP)
 def join_path(path: tuple[JaxKeys, ...]) -> str:
     """Join path to Pytree leave"""
-    values = [getattr(_, "name", str(getattr(_, "idx", getattr(_, "key", None)))) for _ in path]
+    values = [
+        getattr(_, "name", str(getattr(_, "idx", getattr(_, "key", None))))
+        for _ in path
+    ]
     return ".".join(values)
 
 
-def get_node_types(treedef):
+def get_node_types(treedef: Any) -> list[type]:
     """Get unique node types in a pytree"""
     node_types = set()
 
-    def traverse(node):
+    def traverse(node: Any) -> None:
         if node.node_data() is None:
             return
 
@@ -46,7 +48,9 @@ def add_to_cache_jax(x: AnyArray, key: str) -> Any:
     return x
 
 
-def wrap_model_helper(node, path: tuple[JaxKeys, ...] = (), filter_: Callable | None = None):
+def wrap_model_helper(
+    node: Any, path: tuple[JaxKeys, ...] = (), filter_: Callable | None = None
+) -> Any:
     """Recursively apply the clouseau wrapper class"""
     if filter_ is None:
         filter_ = lambda p, _: callable(_)
@@ -67,10 +71,11 @@ def wrap_model_helper(node, path: tuple[JaxKeys, ...] = (), filter_: Callable | 
     return node
 
 
-def wrap_model(model, filter_=None):
+def wrap_model(model: Any, filter_: Callable | None = None) -> tuple[Any, None]:
     """Wrap model jax"""
     model = wrap_model_helper(model, filter_=filter_)
     return getattr(model, "_model", model), None
+
 
 @partial(register_dataclass, data_fields=("_model",), meta_fields=("path", "call_name"))
 @dataclass
@@ -89,7 +94,7 @@ class _ClouseauJaxWrapper:
     path: str
     call_name: str = "__call__"
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
         x = getattr(self._model, self.call_name)(*args, **kwargs)
 
         key = self.path + PATH_SEP + self.call_name

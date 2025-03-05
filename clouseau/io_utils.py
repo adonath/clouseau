@@ -18,12 +18,14 @@ AnyArray = Any
 
 PATH_SEP = "."
 
+
 def unflatten_dict(d: dict[str, Any], sep: str = PATH_SEP) -> dict[str, Any]:
     """Unflatten dictionary"
 
     Taken from https://stackoverflow.com/a/6037657/19802442
     """
-    result = {}
+    result: dict[str, Any] = {}
+
     for key, value in d.items():
         parts = key.split(sep)
         d = result
@@ -32,6 +34,7 @@ def unflatten_dict(d: dict[str, Any], sep: str = PATH_SEP) -> dict[str, Any]:
                 d[part] = {}
             d = d[part]
         d[parts[-1]] = value
+
     return result
 
 
@@ -52,14 +55,16 @@ def save_to_safetensors_torch(x: dict[str, AnyArray], filename: str | Path) -> N
 
 
 def read_from_safetensors(
-    filename: str | Path, framework: str = "numpy", device=None
+    filename: str | Path, framework: str = "numpy", device: Any = None
 ) -> dict[str, Any]:
     """Read from safetensors"""
     from safetensors import safe_open
 
     with safe_open(filename, framework=framework, device=device) as f:
         # reorder according to metadata, which maps index to key / path
-        keys = dict(sorted(f.metadata().items(), key=lambda _: int(_[0]))).values()
+        keys = list(
+            dict(sorted(f.metadata().items(), key=lambda _: int(_[0]))).values()
+        )
         data = {key: f.get_tensor(key) for key in keys}
 
     return data
