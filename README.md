@@ -24,6 +24,8 @@ pip install clouseau
 
 ### Jax / Equinox Example
 
+You can use the inspector as a context manager to record the forward pass of a model. The following example shows how to use the inspector with a model from the [Equinox](https://docs.kidger.site/equinox/) library:
+
 ```python
 import jax
 import equinox as eqx
@@ -41,7 +43,14 @@ x = jax.random.normal(jax.random.PRNGKey(0), (764,))
 
 with inspector.tail(model) as m:
     m(x)
+```
 
+Then in an interactive session inspect the recorded activations:
+
+```python
+from clouseau import inspector
+
+inspector.magnify()
 ```
 
 ### PyTorch Example

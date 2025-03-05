@@ -72,7 +72,9 @@ def wrap_model_helper(
     return node
 
 
-def wrap_model(model: Any, filter_: Callable | None = None) -> tuple[Any, None]:
+def wrap_model(
+    model: Any, filter_: Callable[[tuple[str, ...], Any], bool] | None = None
+) -> tuple[Any, None]:
     """Wrap model jax"""
     model = wrap_model_helper(model, filter_=filter_)
     return getattr(model, "_model", model), None

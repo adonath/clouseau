@@ -86,7 +86,7 @@ class _Recorder:
         self,
         model: AnyModel,
         path: str | Path = DEFAULT_PATH,
-        filter_: Callable[[list[str], Any], bool] | None = None,
+        filter_: Callable[[tuple[str, ...], Any], bool] | None = None,
     ):
         self.model = model
         self.path = Path(path)
@@ -176,7 +176,9 @@ def tail(
     return _Recorder(model=model, path=path, filter_=filter_)
 
 
-def magnify(filename: str | Path, framework: str = "numpy", device: Any = None) -> None:
+def magnify(
+    filename: str | Path = DEFAULT_PATH, framework: str = "numpy", device: Any = None
+) -> None:
     """Visualize nested arrays using treescope"""
     data = read_from_safetensors(filename, framework=framework, device=device)
 
