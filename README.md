@@ -39,7 +39,7 @@ model = eqx.nn.Sequential([
 ])
 x = jax.random.normal(jax.random.PRNGKey(0), (764,))
 
-with inspector.surveil(model) as m:
+with inspector.tail(model) as m:
     m(x)
 
 ```
@@ -61,7 +61,7 @@ model = nn.Sequential({
 
 x = torch.randn((764,))
 
-with inspector.surveil(model) as m:
+with inspector.tail(model) as m:
     m(x)
 ```
 

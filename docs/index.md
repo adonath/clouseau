@@ -43,7 +43,7 @@ model = nn.Sequential({
 
 x = torch.randn((764,))
 
-with inspector.surveil(model) as m:
+with inspector.tail(model) as m:
     m(x)
 ```
 
@@ -106,12 +106,12 @@ model = {
 x = jax.random.normal(jax.random.PRNGKey(3), (764,))
 
 
-with inspector.surveil(model, path=".clouseau/trace-jax.safetensors") as m:
+with inspector.tail(model, path=".clouseau/trace-jax.safetensors") as m:
     m(x)
 
 ```
 
-You can also provide a custom path to the `surveil` function, which will be used to store the safetensors file.
+You can also provide a custom path to the `tail` function, which will be used to store the safetensors file.
 As the wrapper is also a PyTree node itself it can be used in any PyTree context. Thus it should also be compatible
 with libraries such as [Equinox](https://docs.kidger.site/equinox/).
 
@@ -131,7 +131,7 @@ Now we can use the model above and e.g. only trace the output of the activation 
 def filter_(path, node):
     return node in (jax.nn.relu, jax.nn.sigmoid)
 
-with inspector.surveil(model, path=".clouseau/trace-jax-filtered.safetensors", filter_=filter_) as m:
+with inspector.tail(model, path=".clouseau/trace-jax-filtered.safetensors", filter_=filter_) as m:
     m(x)
 ```
 
@@ -141,7 +141,7 @@ Alternatively you can also filter on the content of the path, like so:
 def filter_(path, node):
     return "act" in path
 
-with inspector.surveil(model, path=".clouseau/trace-jax-filtered.safetensors", filter_=filter_) as m:
+with inspector.tail(model, path=".clouseau/trace-jax-filtered.safetensors", filter_=filter_) as m:
     m(x)
 
 ```
