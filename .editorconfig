@@ -1,4 +1,4 @@
-max_line_length = 120
+max_line_length = 88
 
 [*.json]
 indent_style = space
