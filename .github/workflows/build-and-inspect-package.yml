@@ -1,0 +1,15 @@
+name: build-and-inspect-package
+
+on:
+  pull_request:
+    paths: [pyproject.toml]
+  push:
+    branches: [main]
+
+jobs:
+  build-and-inspect-package:
+    name: Build & inspect package.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hynek/build-and-inspect-python-package@v2
