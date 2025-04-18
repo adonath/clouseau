@@ -47,8 +47,9 @@ dev = [
 requires = ["setuptools >= 61.0"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools]
-py-modules = ["clouseau"]
+[tool.setuptools.packages.find]
+include = ["clouseau"]
+exclude = ["tests"]
 
 [tool.mypy]
 files = ["clouseau"]
