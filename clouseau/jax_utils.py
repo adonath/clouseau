@@ -3,7 +3,6 @@ from functools import partial
 from typing import Any, Callable, Union
 
 import jax
-from jax._src.tree_util import _registry_with_keypaths
 from jax.tree_util import GetAttrKey, SequenceKey, register_dataclass
 
 from .io_utils import PATH_SEP
@@ -50,21 +49,15 @@ def add_to_cache_jax(x: AnyArray, key: str) -> Any:
 
 
 def wrap_model_helper(
-    node: Any, path: tuple[JaxKeys, ...] = (), filter_: Callable | None = None
+    node: Any, filter_: Callable, is_leaf: Callable, path: tuple[JaxKeys, ...] = (),
 ) -> Any:
     """Recursively apply the clouseau wrapper class"""
-    if filter_ is None:
-        filter_ = lambda p, _: callable(_)
-
-    serializer = _registry_with_keypaths.get(type(node), None)
-
-    # if there is not pytree registration entry it is considered a leaf
-    if serializer is None:
+    if is_leaf(path, node):
         return node
 
-    children, aux = serializer.flatten_with_keys(node)
-    children = [wrap_model_helper(_, (*path, p), filter_=filter_) for p, _ in children]
-    node = serializer.unflatten_func(aux, children)
+    children, treedef = jax.tree.flatten_with_path(node, is_leaf = lambda _: _ is not node)
+    children = [wrap_model_helper(_, is_leaf=is_leaf, filter_=filter_, path=(*path, p[0]), ) for p, _ in children]
+    node = treedef.unflatten(children)
 
     if filter_(path, node):
         return _ClouseauJaxWrapper(node, path=join_path(path))
@@ -73,10 +66,16 @@ def wrap_model_helper(
 
 
 def wrap_model(
-    model: Any, filter_: Callable[[tuple[str, ...], Any], bool] | None = None
+    model: Any, filter_: Callable[[tuple[str, ...], Any], bool] | None = None, is_leaf: Callable | None = None
 ) -> tuple[Any, None]:
     """Wrap model jax"""
-    model = wrap_model_helper(model, filter_=filter_)
+    if filter_ is None:
+        filter_ = lambda p, _: callable(_)
+
+    if is_leaf is None:
+        is_leaf = lambda p, _: isinstance(_, jax.Array)
+
+    model = wrap_model_helper(model, filter_=filter_, is_leaf=is_leaf)
     return getattr(model, "_model", model), None
 
 

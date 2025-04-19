@@ -19,7 +19,7 @@ def add_to_cache_torch(key: str) -> Callable:
 
 
 def wrap_model(
-    model: nn.Module, filter_: Callable[[tuple[str, ...], Any], bool] | None = None
+    model: nn.Module, filter_: Callable[[tuple[str, ...], Any], bool] | None = None, is_leaf: Callable | None = None
 ) -> tuple[nn.Module, dict[str, torch.utils.hooks.RemovableHandle]]:
     """Wrap model torch"""
     hooks: dict[str, torch.utils.hooks.RemovableHandle] = {}
@@ -27,8 +27,11 @@ def wrap_model(
     if filter_ is None:
         filter_ = lambda p, _: isinstance(_, nn.Module)
 
+    if is_leaf is None:
+        is_leaf = lambda p, _: False
+
     def traverse(path: tuple[str, ...], node: Any) -> None:
-        if node is None:
+        if node is None or is_leaf(path, node):
             return
 
         if filter_(path, node):

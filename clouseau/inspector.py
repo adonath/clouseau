@@ -87,10 +87,12 @@ class _Recorder:
         model: AnyModel,
         path: str | Path = DEFAULT_PATH,
         filter_: Callable[[tuple[str, ...], Any], bool] | None = None,
+        is_leaf: Callable[[tuple[str, ...], Any], bool] | None = None,
     ):
         self.model = model
         self.path = Path(path)
         self.filter_ = filter_
+        self.is_leaf = is_leaf
         self.hooks = None
         self.cache: dict[str, Any] = {}
 
@@ -114,7 +116,7 @@ class _Recorder:
 
         self.cache = utils.CACHE
         wrapped_model, self.hooks = utils.wrap_model(
-            model=self.model, filter_=self.filter_
+            model=self.model, filter_=self.filter_, is_leaf=self.is_leaf
         )
         return wrapped_model
 
@@ -141,6 +143,7 @@ def tail(
     model: AnyModel,
     path: str | Path = DEFAULT_PATH,
     filter_: Callable[[Any, Any], bool] | None = None,
+    is_leaf:  Callable[[Any, Any], bool] | None = None,
 ) -> _Recorder:
     """Tail and record the forward pass of a model
 
@@ -153,6 +156,10 @@ def tail(
     filter_ : callable
         Function that filters which tensors to inspect.
         Takes the pytree leaves, child modules as input and returns a boolean.
+    is_leaf : callable, optional
+        Function that determines whether a node in the model tree should be treated as a leaf.
+        Takes a node as input and returns a boolean. If True, the node will not be traversed further.
+        This is particularly useful for JAX/Equinox models to control the granularity of inspection.
 
     Returns
     -------
@@ -167,13 +174,13 @@ def tail(
     >>> with inspector.tail(model,  path=".clouseau/trace-torch.safetensors") as fmodel:
     ...     out = fmodel(torch.randn(3, 10))
 
-    When working with a Jax / Equinox model, it is important to add `.block_until_ready()`
+    When working with a JAX/Equinox model, it is important to add `.block_until_ready()`
     >>> import jax
     >>> with inspector.tail(model, path=".clouseau/trace-jax.safetensors") as fmodel:
     ...     fmodel(x, time).block_until_ready()
 
     """
-    return _Recorder(model=model, path=path, filter_=filter_)
+    return _Recorder(model=model, path=path, filter_=filter_, is_leaf=is_leaf)
 
 
 def magnify(
