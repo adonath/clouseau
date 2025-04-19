@@ -90,7 +90,10 @@ model = eqx.nn.Sequential([
 ])
 x = jax.random.normal(keys[3], (764,))
 
-with inspector.tail(model, path=path / "activations.safetensors") as m:
+def is_leaf(path, node):
+    return isinstance(node, jax.Array) or node in (jax.nn.relu, jax.nn.sigmoid)
+
+with inspector.tail(model, path=path / "activations.safetensors", is_leaf=is_leaf) as m:
     m(x)
 ```
 
@@ -114,7 +117,7 @@ Now we can use the model above and e.g. only trace the output of the activation 
 def filter_(path, node):
     return node in (jax.nn.relu, jax.nn.sigmoid)
 
-with inspector.tail(model, path=path / "trace-jax-filtered.safetensors", filter_=filter_) as m:
+with inspector.tail(model, path=path / "trace-jax-filtered.safetensors", filter_=filter_, is_leaf=is_leaf) as m:
     m(x)
 ```
 
@@ -124,7 +127,7 @@ Alternatively you can also filter on the content of the path, like so:
 def filter_(path, node):
     return "act" in path
 
-with inspector.tail(model, path=path / "trace-jax-filtered.safetensors", filter_=filter_) as m:
+with inspector.tail(model, path=path / "trace-jax-filtered.safetensors", filter_=filter_, is_leaf=is_leaf) as m:
     m(x)
 
 ```
