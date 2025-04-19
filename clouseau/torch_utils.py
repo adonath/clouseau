@@ -19,7 +19,9 @@ def add_to_cache_torch(key: str) -> Callable:
 
 
 def wrap_model(
-    model: nn.Module, filter_: Callable[[tuple[str, ...], Any], bool] | None = None, is_leaf: Callable | None = None
+    model: nn.Module,
+    filter_: Callable[[tuple[str, ...], Any], bool] | None = None,
+    is_leaf: Callable | None = None,
 ) -> tuple[nn.Module, dict[str, torch.utils.hooks.RemovableHandle]]:
     """Wrap model torch"""
     hooks: dict[str, torch.utils.hooks.RemovableHandle] = {}

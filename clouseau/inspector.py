@@ -143,7 +143,7 @@ def tail(
     model: AnyModel,
     path: str | Path = DEFAULT_PATH,
     filter_: Callable[[Any, Any], bool] | None = None,
-    is_leaf:  Callable[[Any, Any], bool] | None = None,
+    is_leaf: Callable[[Any, Any], bool] | None = None,
 ) -> _Recorder:
     """Tail and record the forward pass of a model
 

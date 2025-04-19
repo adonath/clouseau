@@ -49,14 +49,27 @@ def add_to_cache_jax(x: AnyArray, key: str) -> Any:
 
 
 def wrap_model_helper(
-    node: Any, filter_: Callable, is_leaf: Callable, path: tuple[JaxKeys, ...] = (),
+    node: Any,
+    filter_: Callable,
+    is_leaf: Callable,
+    path: tuple[JaxKeys, ...] = (),
 ) -> Any:
     """Recursively apply the clouseau wrapper class"""
     if is_leaf(path, node):
         return node
 
-    children, treedef = jax.tree.flatten_with_path(node, is_leaf = lambda _: _ is not node)
-    children = [wrap_model_helper(_, is_leaf=is_leaf, filter_=filter_, path=(*path, p[0]), ) for p, _ in children]
+    children, treedef = jax.tree.flatten_with_path(
+        node, is_leaf=lambda _: _ is not node
+    )
+    children = [
+        wrap_model_helper(
+            _,
+            is_leaf=is_leaf,
+            filter_=filter_,
+            path=(*path, p[0]),
+        )
+        for p, _ in children
+    ]
     node = treedef.unflatten(children)
 
     if filter_(path, node):
@@ -66,7 +79,9 @@ def wrap_model_helper(
 
 
 def wrap_model(
-    model: Any, filter_: Callable[[tuple[str, ...], Any], bool] | None = None, is_leaf: Callable | None = None
+    model: Any,
+    filter_: Callable[[tuple[str, ...], Any], bool] | None = None,
+    is_leaf: Callable | None = None,
 ) -> tuple[Any, None]:
     """Wrap model jax"""
     if filter_ is None:
