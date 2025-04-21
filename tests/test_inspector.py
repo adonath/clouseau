@@ -92,6 +92,22 @@ def test_jax(tmp_path):
     assert tuple(data.keys()) == ("sub_model.linear.__call__", "sub_model.__call__")
 
 
+def test_jax_loop(tmp_path):
+    path = tmp_path / "trace.safetensors"
+    m = Model(SubModel(Linear(jnp.ones((2, 2)), jnp.ones(2))))
+
+    x = jnp.ones((2, 2))
+
+    with inspector.tail(
+        m, path, filter_=lambda p, _: isinstance(_, (Linear, SubModel))
+    ) as fm:
+        for _ in range(5):
+            fm(x)
+
+    data = inspector.read_from_safetensors(path, framework="jax")
+    assert tuple(data.keys()) == ("sub_model.linear.__call__", "sub_model.__call__")
+
+
 def test_torch(tmp_path):
     path = tmp_path / "trace.safetensors"
 
