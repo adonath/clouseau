@@ -36,14 +36,17 @@ keys = jax.random.split(jax.random.PRNGKey(918832), 3)
 model = eqx.nn.Sequential([
     eqx.nn.Linear(764, 100, keys[0]),
     jax.nn.relu,
-    eqx.nn.Linear(100, 50, keys[0]),
+    eqx.nn.Linear(100, 50, keys[1]),
     jax.nn.relu,
-    eqx.nn.Linear(50, 10, keys[0]),
+    eqx.nn.Linear(50, 10, keys[2]),
     jax.nn.sigmoid,
 ])
 x = jax.random.normal(jax.random.PRNGKey(0), (764,))
 
-with inspector.tail(model, path="activations.safetensors") as m:
+def is_leaf(path, node):
+    return isinstance(node, jax.Array) or node in (jax.nn.relu, jax.nn.sigmoid)
+
+with inspector.tail(model, path="activations.safetensors", is_leaf=is_leaf) as m:
     m(x)
 ```
 
