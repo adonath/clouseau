@@ -44,7 +44,8 @@ def get_node_types(treedef: Any) -> list[type]:
 
 def add_to_cache_jax(x: AnyArray, key: str) -> Any:
     """Add a intermediate x to the global cache"""
-    CACHE[key] = x
+    CACHE.setdefault(key, [])
+    CACHE[key].append(x)
     return x
 
 

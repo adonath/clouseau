@@ -13,7 +13,9 @@ def add_to_cache_torch(key: str) -> Callable:
     """Add a intermediate x to the global cache"""
 
     def hook(module: nn.Module, input_: Any, output: torch.Tensor) -> None:
-        CACHE[key + PATH_SEP + "forward"] = output.detach().clone()
+        key_full = key + PATH_SEP + "forward"
+        CACHE.setdefault(key_full, [])
+        CACHE[key_full].append(output.detach().clone())
 
     return hook
 
