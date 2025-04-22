@@ -89,7 +89,7 @@ def wrap_model(
         filter_ = lambda p, _: callable(_)
 
     if is_leaf is None:
-        is_leaf = lambda p, _: isinstance(_, jax.Array)
+        is_leaf = lambda p, _: isinstance(_, jax.Array) or _ is None
 
     model = wrap_model_helper(model, filter_=filter_, is_leaf=is_leaf)
     return getattr(model, "_model", model), None

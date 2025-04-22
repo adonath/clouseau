@@ -32,10 +32,10 @@ def wrap_model(
         filter_ = lambda p, _: isinstance(_, nn.Module)
 
     if is_leaf is None:
-        is_leaf = lambda p, _: False
+        is_leaf = lambda p, _: _ is None
 
     def traverse(path: tuple[str, ...], node: Any) -> None:
-        if node is None or is_leaf(path, node):
+        if is_leaf(path, node):
             return
 
         if filter_(path, node):
