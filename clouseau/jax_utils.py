@@ -106,6 +106,8 @@ class _ClouseauJaxWrapper:
         The JAX model/function to wrap
     path : str
         Location of the wrapped module within the pytree.
+    call_name : str
+        Name of the method to call on the model. Defaults to "__call__".
     """
 
     _model: Callable
@@ -117,6 +119,5 @@ class _ClouseauJaxWrapper:
 
         key = self.path + PATH_SEP + self.call_name
         callback = partial(add_to_cache_jax, key=key)
-
         jax.experimental.io_callback(callback, x, x)
         return x

@@ -81,3 +81,9 @@ def read_from_safetensors(
         data = {key: f.get_tensor(key) for key in keys}
 
     return data
+
+
+WRITE_REGISTRY = {
+    "jax": save_to_safetensors_jax,
+    "torch": save_to_safetensors_torch,
+}

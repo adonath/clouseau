@@ -25,9 +25,8 @@ from typing import Any, Callable
 import treescope  # type: ignore[import-untyped]
 
 from .io_utils import (
+    WRITE_REGISTRY,
     read_from_safetensors,
-    save_to_safetensors_jax,
-    save_to_safetensors_torch,
     unflatten_dict,
 )
 
@@ -73,12 +72,6 @@ def is_jax_model(model: AnyModel) -> bool:
         return True
 
 
-WRITE_REGISTRY = {
-    "jax": save_to_safetensors_jax,
-    "torch": save_to_safetensors_torch,
-}
-
-
 class _Recorder:
     """Recorder class that can be used as a context manager."""
 
@@ -109,6 +102,8 @@ class _Recorder:
         raise ValueError(message)
 
     def __enter__(self) -> AnyModel:
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+
         if self.framework == FrameworkEnum.jax:
             from . import jax_utils as utils
         elif self.framework == FrameworkEnum.torch:
@@ -126,8 +121,6 @@ class _Recorder:
         exc_value: BaseException | None,
         traceback: Any,
     ) -> None:
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-
         if not self.cache:
             log.warning("No arrays were recorded. Check the filter function.")
 
