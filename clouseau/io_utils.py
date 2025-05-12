@@ -46,9 +46,11 @@ def save_to_safetensors_jax(x: dict[str, list[AnyArray]], filename: str | Path) 
     # safetensors does not support ordered dicts, see https://github.com/huggingface/safetensors/issues/357
     order = {str(idx): key for idx, key in enumerate(x.keys())}
 
-    x = {key: jnp.concatenate(value) for key, value in x.items()}
+    x_concat: dict[str, AnyArray] = {
+        key: jnp.concatenate(value) for key, value in x.items()
+    }
 
-    save_file_jax(x, filename, metadata=order)
+    save_file_jax(x_concat, filename, metadata=order)
 
 
 def save_to_safetensors_torch(
@@ -61,9 +63,11 @@ def save_to_safetensors_torch(
     # safetensors does not support ordered dicts, see https://github.com/huggingface/safetensors/issues/357
     order = {str(idx): key for idx, key in enumerate(x.keys())}
 
-    x = {key: torch.cat(value, dim=0) for key, value in x.items()}
+    x_concat: dict[str, torch.Tensor] = {
+        key: torch.cat(value, dim=0) for key, value in x.items()
+    }
 
-    save_file_torch(x, filename, metadata=order)
+    save_file_torch(x_concat, filename, metadata=order)
 
 
 def read_from_safetensors(

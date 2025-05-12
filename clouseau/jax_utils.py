@@ -11,7 +11,7 @@ JaxKeys = Union[GetAttrKey, SequenceKey]  # type: ignore[no-any-unimported]
 
 AnyArray = Any
 
-CACHE = {}
+CACHE: dict[str, list[AnyArray]] = {}
 
 
 # only works in latest jax

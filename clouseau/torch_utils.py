@@ -6,7 +6,7 @@ from torch import nn
 
 from .io_utils import PATH_SEP
 
-CACHE: dict[str, torch.Tensor] = {}
+CACHE: dict[str, list[torch.Tensor]] = {}
 
 
 def add_to_cache_torch(key: str) -> Callable:
