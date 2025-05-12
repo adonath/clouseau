@@ -98,9 +98,9 @@ def test_jax_loop(tmp_path):
 
     x = jnp.ones((2, 2))
 
-    with inspector.tail(
-        m, path, filter_=lambda p, _: isinstance(_, (Linear, SubModel))
-    ) as fm:
+    filter_ = lambda p, _: isinstance(_, (Linear, SubModel))
+
+    with inspector.tail(m, path, filter_=filter_) as fm:
         for _ in range(5):
             fm(x)
 

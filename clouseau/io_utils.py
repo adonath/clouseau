@@ -46,7 +46,6 @@ def save_to_safetensors_jax(x: dict[str, list[AnyArray]], filename: str | Path) 
     # safetensors does not support ordered dicts, see https://github.com/huggingface/safetensors/issues/357
     order = {str(idx): key for idx, key in enumerate(x.keys())}
 
-    print(x)
     x = {key: jnp.concatenate(value) for key, value in x.items()}
 
     save_file_jax(x, filename, metadata=order)

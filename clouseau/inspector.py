@@ -98,7 +98,9 @@ class _Recorder:
         elif is_jax_model(self.model):
             return FrameworkEnum.jax
 
-        message = "The model does not seem to be a PyTorch or JAX model."
+        message = ("The model does not seem to be a PyTorch or JAX model. "
+                   "PyTorch models should inherit from from `torch.nn.Module`, "
+                   "while JAX models should be registered PyTrees. See ")
         raise ValueError(message)
 
     def __enter__(self) -> AnyModel:
@@ -110,6 +112,7 @@ class _Recorder:
             from . import torch_utils as utils  # type: ignore[no-redef]
 
         self.cache = utils.CACHE
+
         wrapped_model, self.hooks = utils.wrap_model(
             model=self.model, filter_=self.filter_, is_leaf=self.is_leaf
         )
@@ -122,7 +125,7 @@ class _Recorder:
         traceback: Any,
     ) -> None:
         if not self.cache:
-            log.warning("No arrays were recorded. Check the filter function.")
+            log.warning("No arrays were recorded. Please check the filter function.")
 
         WRITE_REGISTRY[self.framework](self.cache, self.path)
         self.cache.clear()
