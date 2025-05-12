@@ -13,7 +13,9 @@ def add_to_cache_torch(key: str) -> Callable:
     """Add a intermediate x to the global cache"""
 
     def hook(module: nn.Module, input_: Any, output: torch.Tensor) -> None:
-        CACHE[key + PATH_SEP + "forward"] = output.detach().clone()
+        key_full = key + PATH_SEP + "forward"
+        CACHE.setdefault(key_full, [])
+        CACHE[key_full].append(output.detach().clone())
 
     return hook
 
@@ -30,10 +32,10 @@ def wrap_model(
         filter_ = lambda p, _: isinstance(_, nn.Module)
 
     if is_leaf is None:
-        is_leaf = lambda p, _: False
+        is_leaf = lambda p, _: _ is None
 
     def traverse(path: tuple[str, ...], node: Any) -> None:
-        if node is None or is_leaf(path, node):
+        if is_leaf(path, node):
             return
 
         if filter_(path, node):

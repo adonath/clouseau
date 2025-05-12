@@ -44,7 +44,8 @@ def get_node_types(treedef: Any) -> list[type]:
 
 def add_to_cache_jax(x: AnyArray, key: str) -> Any:
     """Add a intermediate x to the global cache"""
-    CACHE[key] = x
+    CACHE.setdefault(key, [])
+    CACHE[key].append(x)
     return x
 
 
@@ -88,7 +89,7 @@ def wrap_model(
         filter_ = lambda p, _: callable(_)
 
     if is_leaf is None:
-        is_leaf = lambda p, _: isinstance(_, jax.Array)
+        is_leaf = lambda p, _: isinstance(_, jax.Array) or _ is None
 
     model = wrap_model_helper(model, filter_=filter_, is_leaf=is_leaf)
     return getattr(model, "_model", model), None
@@ -105,6 +106,8 @@ class _ClouseauJaxWrapper:
         The JAX model/function to wrap
     path : str
         Location of the wrapped module within the pytree.
+    call_name : str
+        Name of the method to call on the model. Defaults to "__call__".
     """
 
     _model: Callable
@@ -116,6 +119,5 @@ class _ClouseauJaxWrapper:
 
         key = self.path + PATH_SEP + self.call_name
         callback = partial(add_to_cache_jax, key=key)
-
         jax.experimental.io_callback(callback, x, x)
         return x

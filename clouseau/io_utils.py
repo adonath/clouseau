@@ -38,19 +38,31 @@ def unflatten_dict(d: dict[str, Any], sep: str = PATH_SEP) -> dict[str, Any]:
     return result
 
 
-def save_to_safetensors_jax(x: dict[str, AnyArray], filename: str | Path) -> None:
+def save_to_safetensors_jax(x: dict[str, list[AnyArray]], filename: str | Path) -> None:
     """Safetensors I/O for jax"""
+    from jax import numpy as jnp
+
     log.info(f"Writing {filename}")
     # safetensors does not support ordered dicts, see https://github.com/huggingface/safetensors/issues/357
     order = {str(idx): key for idx, key in enumerate(x.keys())}
+
+    x = {key: jnp.concatenate(value) for key, value in x.items()}
+
     save_file_jax(x, filename, metadata=order)
 
 
-def save_to_safetensors_torch(x: dict[str, AnyArray], filename: str | Path) -> None:
+def save_to_safetensors_torch(
+    x: dict[str, list[AnyArray]], filename: str | Path
+) -> None:
     """Safetensors I/O for torch"""
+    import torch
+
     log.info(f"Writing {filename}")
     # safetensors does not support ordered dicts, see https://github.com/huggingface/safetensors/issues/357
     order = {str(idx): key for idx, key in enumerate(x.keys())}
+
+    x = {key: torch.cat(value, dim=0) for key, value in x.items()}
+
     save_file_torch(x, filename, metadata=order)
 
 
@@ -68,3 +80,9 @@ def read_from_safetensors(
         data = {key: f.get_tensor(key) for key in keys}
 
     return data
+
+
+WRITE_REGISTRY = {
+    "jax": save_to_safetensors_jax,
+    "torch": save_to_safetensors_torch,
+}
