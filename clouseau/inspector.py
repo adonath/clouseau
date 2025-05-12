@@ -98,9 +98,11 @@ class _Recorder:
         elif is_jax_model(self.model):
             return FrameworkEnum.jax
 
-        message = ("The model does not seem to be a PyTorch or JAX model. "
-                   "PyTorch models should inherit from from `torch.nn.Module`, "
-                   "while JAX models should be registered PyTrees. See ")
+        message = (
+            "The model does not seem to be a PyTorch or JAX model. "
+            "PyTorch models should inherit from from `torch.nn.Module`, "
+            "while JAX models should be registered PyTrees. See "
+        )
         raise ValueError(message)
 
     def __enter__(self) -> AnyModel:
