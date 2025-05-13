@@ -78,6 +78,7 @@ def read_from_safetensors(
 
     with safe_open(filename, framework=framework, device=device) as f:
         # reorder according to metadata, which maps index to key / path
+        # note this triggers the lazy loading and immediately loads all data into memory
         keys = list(
             dict(sorted(f.metadata().items(), key=lambda _: int(_[0]))).values()
         )
