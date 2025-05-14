@@ -101,7 +101,8 @@ class _Recorder:
         message = (
             "The model does not seem to be a PyTorch or JAX model. "
             "PyTorch models should inherit from from `torch.nn.Module`, "
-            "while JAX models should be registered PyTrees. See "
+            "while a JAX model should be a registered PyTrees. See e.g. "
+            "https://docs.jax.dev/en/latest/pytrees.html#extending-pytrees."
         )
         raise ValueError(message)
 
