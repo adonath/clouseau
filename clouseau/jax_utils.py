@@ -123,12 +123,7 @@ class _ClouseauJaxWrapper:
         return x
 
     def __getattr__(self, name):
-        attr = getattr(self, name, None)
-
-        if attr is None:
-            attr = getattr(self._model, name)
-
-        return attr
+        return getattr(self._model, name)
             
 
 
