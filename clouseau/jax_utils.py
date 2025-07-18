@@ -121,3 +121,14 @@ class _ClouseauJaxWrapper:
         callback = partial(add_to_cache_jax, key=key)
         jax.experimental.io_callback(callback, x, x)
         return x
+
+    def __getattr__(self, name):
+        attr = getattr(self, name, None)
+
+        if attr is None:
+            attr = getattr(self._model, name)
+
+        return attr
+            
+
+
