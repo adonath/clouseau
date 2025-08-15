@@ -22,13 +22,11 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Callable
 
-import treescope  # type: ignore[import-untyped]
-
 from .io_utils import (
     WRITE_REGISTRY,
     read_from_safetensors,
-    unflatten_dict,
 )
+from .visualize import print_tree
 
 DEFAULT_PATH = Path.cwd() / ".clouseau" / "trace.safetensors"
 
@@ -188,5 +186,4 @@ def magnify(
     """Visualize nested arrays using treescope"""
     data = read_from_safetensors(filename, framework=framework, device=device)
 
-    with treescope.active_autovisualizer.set_scoped(treescope.ArrayAutovisualizer()):
-        treescope.display(unflatten_dict(data))
+    print_tree(data)

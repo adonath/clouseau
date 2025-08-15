@@ -47,6 +47,9 @@ dev = [
 requires = ["setuptools >= 61.0"]
 build-backend = "setuptools.build_meta"
 
+[project.scripts]
+clouseau = "clouseau.__main__:main"
+
 [tool.setuptools.packages.find]
 include = ["clouseau"]
 exclude = ["tests"]
