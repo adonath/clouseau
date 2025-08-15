@@ -18,7 +18,7 @@ classifiers = [
 ]
 dependencies = [
     "numpy>=2.2.3",
-    "rich>=14.1.0",
+    "rich>=13.0.0",
     "safetensors>=0.5.2",
 ]
 
