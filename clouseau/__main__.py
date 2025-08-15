@@ -2,6 +2,9 @@
 import argparse
 from pathlib import Path
 
+from rich import print_json
+from safetensors import safe_open
+
 from clouseau.io_utils import read_from_safetensors, unflatten_dict
 from clouseau.visualize import print_tree
 
@@ -10,6 +13,12 @@ def show(args):
     """Show contents of a single file"""
     path = Path(args.filename)
     data = unflatten_dict(read_from_safetensors(path, key_pattern=args.key_pattern))
+
+    if args.show_meta:
+        with safe_open(args.filename, framework="numpy") as f:
+            print_json(data=f.metadata())
+            return
+
     print_tree(data, label=f"File: [orchid]{path.name}[/orchid]")
 
 
@@ -30,6 +39,9 @@ def main():
     show_parser.add_argument("filename", help="File to display")
     show_parser.add_argument(
         "--key-pattern", help="Regex to select the key paths to show", default=".*"
+    )
+    show_parser.add_argument(
+        "--show-meta", action="store_true", help="Show metadata of the file"
     )
     show_parser.set_defaults(func=show)
 
