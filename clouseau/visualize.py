@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Any
+from typing import Any, Callable
 
 import numpy as np
 from rich.console import Console
@@ -16,7 +16,7 @@ class ArrayValuesFormatter:
     threshold: int = 100
     color: str = "cornsilk1"
 
-    def __call__(self, value):
+    def __call__(self, value: np.ndarray) -> str:
         with np.printoptions(
             precision=self.precision,
             edgeitems=self.edgeitems,
@@ -31,7 +31,7 @@ StatsFuncEnum = StrEnum(
     "StatsFuncEnum", ["mean", "std", "min", "max", "non_zero", "is_nan"]
 )
 
-STATS_FUNCS = {
+STATS_FUNCS: dict[StatsFuncEnum, Callable[[np.ndarray], float]] = {
     StatsFuncEnum.mean: np.mean,
     StatsFuncEnum.std: np.std,
     StatsFuncEnum.min: np.min,
@@ -47,10 +47,10 @@ class ArrayStatsFormatter:
 
     color: str = "pale_turquoise1"
     color_label: str = "turquoise2"
-    stats: tuple[StatsFuncEnum] = tuple(StatsFuncEnum)
-    fmt = "{:.2e}"
+    stats: tuple[StatsFuncEnum, ...] = tuple(StatsFuncEnum)
+    fmt: str = "{:.2e}"
 
-    def __call__(self, value):
+    def __call__(self, value: np.ndarray) -> str:
         str_value = ""
 
         for stat in self.stats:
@@ -60,16 +60,16 @@ class ArrayStatsFormatter:
         return f"[{self.color}]{str_value}[/{self.color}]"
 
 
-def format_np_array(value):
+def format_np_array(value: np.ndarray) -> str:
     return ArrayStatsFormatter()(value) + "\n" + ArrayValuesFormatter()(value)
 
 
 FORMATTER_REGISTRY = {np.ndarray: format_np_array}
 
 
-def print_tree(tree, label="Tree"):
+def print_tree(tree_dict: dict[str, Any], label: str = "Tree") -> None:
     """Print a PyTree to console"""
-    tree = dict_to_tree(tree, label=label)
+    tree = dict_to_tree(tree_dict, label=label)
     console = Console()
     console.print(tree)
 

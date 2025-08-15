@@ -72,7 +72,10 @@ def save_to_safetensors_torch(
 
 
 def read_from_safetensors(
-    filename: str | Path, framework: str = "numpy", device: Any = None, key_pattern=".*"
+    filename: str | Path,
+    framework: str = "numpy",
+    device: Any = None,
+    key_pattern: str = ".*",
 ) -> dict[str, Any]:
     """Read from safetensors"""
     from safetensors import safe_open

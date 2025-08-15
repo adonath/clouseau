@@ -122,5 +122,5 @@ class _ClouseauJaxWrapper:
         jax.experimental.io_callback(callback, x, x)
         return x
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Any:
         return getattr(self._model, name)

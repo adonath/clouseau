@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 from pathlib import Path
+from typing import Any
 
 from rich import print_json
 from safetensors import safe_open
@@ -9,7 +10,7 @@ from clouseau.io_utils import read_from_safetensors, unflatten_dict
 from clouseau.visualize import print_tree
 
 
-def show(args):
+def show(args: Any) -> None:
     """Show contents of a single file"""
     path = Path(args.filename)
     data = unflatten_dict(read_from_safetensors(path, key_pattern=args.key_pattern))
@@ -22,13 +23,13 @@ def show(args):
     print_tree(data, label=f"File: [orchid]{path.name}[/orchid]")
 
 
-def diff(args):
+def diff(args: Any) -> None:
     """Compare two files and show differences"""
     # TODO: Implement diff functionality
     print(f"Diffing files: {args.file1} and {args.file2}")
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(
         description="Show and diff content of safetensors files"
     )
