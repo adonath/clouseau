@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import numpy as np
@@ -23,10 +23,10 @@ class Show:
     """Show contents of a single safetensors file"""
 
     filename: str
-    key_pattern: str = ".*"
-    show_meta: bool = False
-    fmt_stats: ArrayStatsFormatter = ArrayStatsFormatter()  # noqa: RUF009
-    fmt_values: ArrayValuesFormatter = ArrayValuesFormatter()  # noqa: RUF009
+    key_pattern: str = ".*"  # regex pattern to match and select a path
+    show_meta: bool = False  # show metadata and exit
+    fmt_stats: ArrayStatsFormatter = field(default_factory=ArrayStatsFormatter)
+    fmt_values: ArrayValuesFormatter = field(default_factory=ArrayValuesFormatter)
 
 
 @dataclass
