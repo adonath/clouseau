@@ -1,3 +1,4 @@
+import json
 import logging
 from pathlib import Path
 from typing import Any
@@ -48,7 +49,7 @@ def save_to_safetensors_jax(x: dict[str, list[AnyArray]], filename: str | Path) 
         key: jnp.concatenate(value) for key, value in x.items()
     }
 
-    save_file_jax(x_concat, filename, metadata=order)
+    save_file_jax(x_concat, filename, metadata={"order": json.dumps(order)})
 
 
 def save_to_safetensors_torch(
@@ -66,7 +67,7 @@ def save_to_safetensors_torch(
         key: torch.cat(value, dim=0) for key, value in x.items()
     }
 
-    save_file_torch(x_concat, filename, metadata=order)
+    save_file_torch(x_concat, filename, metadata={"order": json.dumps(order)})
 
 
 def read_from_safetensors(
@@ -78,9 +79,13 @@ def read_from_safetensors(
     with safe_open(filename, framework=framework, device=device) as f:
         # reorder according to metadata, which maps index to key / path
         # note this triggers the lazy loading and immediately loads all data into memory
-        keys = list(
-            dict(sorted(f.metadata().items(), key=lambda _: int(_[0]))).values()
-        )
+        order = f.metadata().get("order")
+
+        if order is not None:
+            order = json.loads(order)
+            keys = list(dict(sorted(order.items(), key=lambda _: int(_[0]))).values())
+        else:
+            keys = f.keys()
         data = {key: f.get_tensor(key) for key in keys}
 
     return data
