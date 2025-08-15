@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+from enum import StrEnum
 from typing import Any
 
 import numpy as np
@@ -5,24 +7,61 @@ from rich.console import Console
 from rich.tree import Tree
 
 
-def array_values(value, color="cornsilk1"):
-    """Print array stats"""
+@dataclass
+class ArrayValuesFormatter:
+    """Array values formatter"""
 
-    with np.printoptions(precision=2, edgeitems=2, threshold=100):
-        str_value = str(value)
+    precision: int = 2
+    edgeitems: int = 3
+    threshold: int = 100
+    color: str = "cornsilk1"
 
-    return f"\n[{color}]{str_value}[/{color}]"
+    def __call__(self, value):
+        with np.printoptions(
+            precision=self.precision,
+            edgeitems=self.edgeitems,
+            threshold=self.threshold,
+        ):
+            str_value = str(value)
+
+        return f"[{self.color}]{str_value}[/{self.color}]"
 
 
-def array_stats(value, color="pale_turquoise1", color_label="turquoise2"):
-    """Print array stats"""
-    str_value = f"[{color_label}]mean[/{color_label}]={np.mean(value):.2e}, [{color_label}]std[/{color_label}]={np.std(value):.2e}, "
-    str_value += f"[{color_label}]min[/{color_label}]={np.min(value):.2e}, [{color_label}]max[/{color_label}]={np.max(value):.2e}"
-    return f"[{color}]{str_value}[/{color}]"
+StatsFuncEnum = StrEnum(
+    "StatsFuncEnum", ["mean", "std", "min", "max", "non_zero", "is_nan"]
+)
+
+STATS_FUNCS = {
+    StatsFuncEnum.mean: np.mean,
+    StatsFuncEnum.std: np.std,
+    StatsFuncEnum.min: np.min,
+    StatsFuncEnum.max: np.max,
+    StatsFuncEnum.non_zero: np.count_nonzero,
+    StatsFuncEnum.is_nan: lambda x: np.sum(np.isnan(x)),
+}
+
+
+@dataclass
+class ArrayStatsFormatter:
+    """Array stats formatter"""
+
+    color: str = "pale_turquoise1"
+    color_label: str = "turquoise2"
+    stats: tuple[StatsFuncEnum] = tuple(StatsFuncEnum)
+    fmt = "{:.2e}"
+
+    def __call__(self, value):
+        str_value = ""
+
+        for stat in self.stats:
+            func = STATS_FUNCS[stat]
+            str_value += f"[{self.color_label}]{stat.name}[/{self.color_label}]={self.fmt.format(func(value))}, "
+
+        return f"[{self.color}]{str_value}[/{self.color}]"
 
 
 def format_np_array(value):
-    return array_stats(value) + array_values(value)
+    return ArrayStatsFormatter()(value) + "\n" + ArrayValuesFormatter()(value)
 
 
 FORMATTER_REGISTRY = {np.ndarray: format_np_array}
@@ -51,8 +90,7 @@ def _add_dict_to_tree(parent_node: Tree, data: dict[str, Any]) -> None:
             _add_dict_to_tree(branch, value)
         else:
             formatter = FORMATTER_REGISTRY.get(type(value))
-            # Add leaf node for primitive values
-            formatted_value = formatter(value)
+            formatted_value = formatter(value) if formatter else str(value)
             parent_node.add(
-                f"[dark_turquoise]{key} {value.dtype.str}({value.shape})[/dark_turquoise]: {formatted_value}"
+                f"[dark_turquoise]{key}[/dark_turquoise]: {formatted_value}"
             )

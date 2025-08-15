@@ -10,7 +10,7 @@ def show(args):
     """Show contents of a single file"""
     path = Path(args.filename)
     data = unflatten_dict(read_from_safetensors(path))
-    print_tree(data, label=f"File: {path.name}")
+    print_tree(data, label=f"File: [orchid]{path.name}[/orchid]")
 
 
 def diff(args):

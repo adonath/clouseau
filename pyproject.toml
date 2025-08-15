@@ -17,6 +17,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
+    "numpy>=2.2.3",
     "rich>=14.1.0",
     "safetensors>=0.5.2",
 ]
