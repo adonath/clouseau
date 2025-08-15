@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 import argparse
+from pathlib import Path
 
-from clouseau.io_utils import read_from_safetensors
+from clouseau.io_utils import read_from_safetensors, unflatten_dict
 from clouseau.visualize import print_tree
 
 
 def show(args):
     """Show contents of a single file"""
-    data = read_from_safetensors(args.filename)
-    print_tree(data)
+    path = Path(args.filename)
+    data = unflatten_dict(read_from_safetensors(path))
+    print_tree(data, label=f"File: {path.name}")
 
 
 def diff(args):
