@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 from pathlib import Path
 from typing import Any
 
@@ -71,7 +72,7 @@ def save_to_safetensors_torch(
 
 
 def read_from_safetensors(
-    filename: str | Path, framework: str = "numpy", device: Any = None
+    filename: str | Path, framework: str = "numpy", device: Any = None, key_pattern=".*"
 ) -> dict[str, Any]:
     """Read from safetensors"""
     from safetensors import safe_open
@@ -86,7 +87,8 @@ def read_from_safetensors(
             keys = list(dict(sorted(order.items(), key=lambda _: int(_[0]))).values())
         else:
             keys = f.keys()
-        data = {key: f.get_tensor(key) for key in keys}
+
+        data = {key: f.get_tensor(key) for key in keys if re.search(key_pattern, key)}
 
     return data
 

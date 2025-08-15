@@ -9,7 +9,7 @@ from clouseau.visualize import print_tree
 def show(args):
     """Show contents of a single file"""
     path = Path(args.filename)
-    data = unflatten_dict(read_from_safetensors(path))
+    data = unflatten_dict(read_from_safetensors(path, key_pattern=args.key_pattern))
     print_tree(data, label=f"File: [orchid]{path.name}[/orchid]")
 
 
@@ -28,6 +28,9 @@ def main():
     # Show subcommand
     show_parser = subparsers.add_parser("show", help="Show contents of a file")
     show_parser.add_argument("filename", help="File to display")
+    show_parser.add_argument(
+        "--key-pattern", help="Regex to select the key paths to show", default=".*"
+    )
     show_parser.set_defaults(func=show)
 
     # Diff subcommand
