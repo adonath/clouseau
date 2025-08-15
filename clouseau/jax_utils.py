@@ -124,6 +124,3 @@ class _ClouseauJaxWrapper:
 
     def __getattr__(self, name):
         return getattr(self._model, name)
-            
-
-
