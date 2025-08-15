@@ -113,6 +113,7 @@ class _Recorder:
             from . import torch_utils as utils  # type: ignore[no-redef]
 
         self.cache = utils.CACHE
+        self.cache.clear()
 
         wrapped_model, self.hooks = utils.wrap_model(
             model=self.model, filter_=self.filter_, is_leaf=self.is_leaf
