@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-import argparse
-from pathlib import Path
-from typing import Any
+from __future__ import annotations
 
+from dataclasses import dataclass
+from pathlib import Path
+
+import tyro
 from rich import print_json
 from safetensors import safe_open
 
@@ -10,7 +12,27 @@ from clouseau.io_utils import read_from_safetensors, unflatten_dict
 from clouseau.visualize import print_tree
 
 
-def show(args: Any) -> None:
+@dataclass
+class Show:
+    """Show contents of a single safetensors file"""
+
+    filename: str
+    key_pattern: str = ".*"
+    show_meta: bool = False
+
+
+@dataclass
+class Diff:
+    """Compare two files and show differences"""
+
+    filename: str
+    filename_other: str
+
+
+Commands = Show | Diff
+
+
+def show(args: Show) -> None:
     """Show contents of a single file"""
     path = Path(args.filename)
     data = unflatten_dict(read_from_safetensors(path, key_pattern=args.key_pattern))
@@ -23,42 +45,19 @@ def show(args: Any) -> None:
     print_tree(data, label=f"File: [orchid]{path.name}[/orchid]")
 
 
-def diff(args: Any) -> None:
+def diff(args: Diff) -> None:
     """Compare two files and show differences"""
     # TODO: Implement diff functionality
-    print(f"Diffing files: {args.file1} and {args.file2}")
+    print(f"Diffing files: {args.filename} and {args.filename_other}")
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Show and diff content of safetensors files"
-    )
-    subparsers = parser.add_subparsers(dest="command", help="Available commands")
+    args = tyro.cli(Commands, description="Show and diff content of safetensors files")
 
-    # Show subcommand
-    show_parser = subparsers.add_parser("show", help="Show contents of a file")
-    show_parser.add_argument("filename", help="File to display")
-    show_parser.add_argument(
-        "--key-pattern", help="Regex to select the key paths to show", default=".*"
-    )
-    show_parser.add_argument(
-        "--show-meta", action="store_true", help="Show metadata of the file"
-    )
-    show_parser.set_defaults(func=show)
-
-    # Diff subcommand
-    diff_parser = subparsers.add_parser("diff", help="Compare two files")
-    diff_parser.add_argument("filename", help="First file to compare")
-    diff_parser.add_argument("filename_other", help="Second file to compare")
-    diff_parser.set_defaults(func=diff)
-
-    args = parser.parse_args()
-
-    # Call the appropriate function
-    if hasattr(args, "func"):
-        args.func(args)
-    else:
-        parser.print_help()
+    if isinstance(args, Show):
+        show(args)
+    elif isinstance(args, Diff):
+        diff(args)
 
 
 if __name__ == "__main__":
