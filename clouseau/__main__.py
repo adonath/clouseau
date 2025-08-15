@@ -46,7 +46,7 @@ def show(args: Show) -> None:
     data = unflatten_dict(read_from_safetensors(path, key_pattern=args.key_pattern))
 
     FORMATTER_REGISTRY[np.ndarray] = (
-        lambda _: args.fmt_stats(_) + "\n" + args.fmt_values(_)
+        lambda _: args.fmt_stats(_) + "\n" + args.fmt_values(_)  # type: ignore[assignment]
     )
 
     if args.show_meta:
@@ -64,7 +64,9 @@ def diff(args: Diff) -> None:
 
 
 def main() -> None:
-    args = tyro.cli(Commands, description="Show and diff content of safetensors files")
+    args = tyro.cli(  # type: ignore[call-overload]
+        Commands, description="Show and diff content of safetensors files"
+    )
 
     if isinstance(args, Show):
         show(args)
