@@ -20,6 +20,7 @@ dependencies = [
     "numpy>=2.2.3",
     "rich>=13.0.0",
     "safetensors>=0.5.2",
+    "tyro>=0.9.28",
 ]
 
 [project.urls]
