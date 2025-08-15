@@ -7,7 +7,7 @@ from rich.console import Console
 from rich.tree import Tree
 
 
-@dataclass
+@dataclass(frozen=True)
 class ArrayValuesFormatter:
     """Array values formatter"""
 
@@ -41,7 +41,7 @@ STATS_FUNCS: dict[StatsFuncEnum, Callable[[np.ndarray], float]] = {
 }
 
 
-@dataclass
+@dataclass(frozen=True)
 class ArrayStatsFormatter:
     """Array stats formatter"""
 

@@ -4,12 +4,18 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+import numpy as np
 import tyro
 from rich import print_json
 from safetensors import safe_open
 
 from clouseau.io_utils import read_from_safetensors, unflatten_dict
-from clouseau.visualize import print_tree
+from clouseau.visualize import (
+    FORMATTER_REGISTRY,
+    ArrayStatsFormatter,
+    ArrayValuesFormatter,
+    print_tree,
+)
 
 
 @dataclass
@@ -19,6 +25,8 @@ class Show:
     filename: str
     key_pattern: str = ".*"
     show_meta: bool = False
+    fmt_stats: ArrayStatsFormatter = ArrayStatsFormatter()  # noqa: RUF009
+    fmt_values: ArrayValuesFormatter = ArrayValuesFormatter()  # noqa: RUF009
 
 
 @dataclass
@@ -36,6 +44,10 @@ def show(args: Show) -> None:
     """Show contents of a single file"""
     path = Path(args.filename)
     data = unflatten_dict(read_from_safetensors(path, key_pattern=args.key_pattern))
+
+    FORMATTER_REGISTRY[np.ndarray] = (
+        lambda _: args.fmt_stats(_) + "\n" + args.fmt_values(_)
+    )
 
     if args.show_meta:
         with safe_open(args.filename, framework="numpy") as f:
