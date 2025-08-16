@@ -8,6 +8,18 @@ from rich.tree import Tree
 
 
 @dataclass(frozen=True)
+class ArrayShapeFormatter:
+    """Array values formatter"""
+
+    color: str = "dark_turquoise"
+
+    def __call__(self, value: np.ndarray) -> str:
+        str_value = f"{value.dtype} {value.shape}"
+
+        return f"[{self.color}]{str_value}[/{self.color}]"
+
+
+@dataclass(frozen=True)
 class ArrayValuesFormatter:
     """Array values formatter"""
 

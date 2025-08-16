@@ -12,6 +12,7 @@ from safetensors import safe_open
 from clouseau.io_utils import read_from_safetensors, unflatten_dict
 from clouseau.visualize import (
     FORMATTER_REGISTRY,
+    ArrayShapeFormatter,
     ArrayStatsFormatter,
     ArrayValuesFormatter,
     print_tree,
@@ -46,7 +47,11 @@ def show(args: Show) -> None:
     data = unflatten_dict(read_from_safetensors(path, key_pattern=args.key_pattern))
 
     FORMATTER_REGISTRY[np.ndarray] = (
-        lambda _: args.fmt_stats(_) + "\n" + args.fmt_values(_)  # type: ignore[assignment]
+        lambda _: ArrayShapeFormatter()(_)
+        + "\n"
+        + args.fmt_stats(_)
+        + "\n"
+        + args.fmt_values(_)  # type: ignore[assignment]
     )
 
     if args.show_meta:
