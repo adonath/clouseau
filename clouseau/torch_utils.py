@@ -5,9 +5,9 @@ from typing import Any
 import torch
 from torch import nn
 
-from .io_utils import PATH_SEP
+from .io_utils import PATH_SEP, ArrayCache, FrameworkEnum
 
-CACHE: dict[str, list[torch.Tensor]] = {}
+CACHE: ArrayCache = ArrayCache(framework=FrameworkEnum.torch)
 
 log = logging.getLogger(__file__)
 
@@ -17,14 +17,13 @@ def add_to_cache_torch(key: str) -> Callable:
 
     def hook(module: nn.Module, input_: Any, output: torch.Tensor) -> None:
         key_full = key + PATH_SEP + "__call__"
-        CACHE.setdefault(key_full, [])
         if isinstance(output, tuple):
             log.warning(
                 f"Output for `{key_full}` is a tuple, choosing first entry only."
             )
             output = output[0]
 
-        CACHE[key_full].append(output.detach().clone())
+        CACHE.add(key_full, output.detach().clone())
 
     return hook
 

@@ -1,6 +1,8 @@
 import json
 import logging
 import re
+from collections import defaultdict
+from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 from typing import Any
@@ -102,6 +104,76 @@ def read_from_safetensors(
         data = {key: f.get_tensor(key) for key in keys if re.search(key_pattern, key)}
 
     return data
+
+
+@dataclass
+class ArrayCache:
+    """Simple cache for dict of lists of arrays with automatic safetensors saving."""
+
+    framework: FrameworkEnum
+    max_size_bytes: int = 1024**3
+    path: str = ".clouseau"
+    filename_pattern: str = "activations-{idx:03d}.safetensors"
+    _current_size: int = 0
+    _data: dict[str, list[AnyArray]] = field(default_factory=lambda: defaultdict(list))
+    _file_counter = 0
+
+    def __post_init__(self):
+        self.path = Path(self.path)
+
+    @property
+    def data(self):
+        """Data"""
+        return self._data
+
+    @property
+    def current_size(self):
+        """Current size"""
+        return self._current_size
+
+    @property
+    def file_counter(self):
+        """Current size"""
+        return self._file_counter
+
+    @property
+    def current_size_mb(self) -> float:
+        """Current cache size in MB."""
+        return self.current_size / (1024 * 1024)
+
+    def add(self, key: str, array) -> bool:
+        """Add array to cache. Returns True if cache was flushed."""
+        array_size = array.nbytes
+
+        # Flush if adding would exceed limit
+        if self.current_size + array_size > self.max_size_bytes:
+            self._flush()
+
+        # Add to cache
+        self._data[key].append(array)
+        self._current_size += array_size
+
+    def _flush(self):
+        """Save cache to safetensors and clear."""
+        if not self.data:
+            return
+
+        filename = self.path / self.filename_pattern.format(idx=self.file_counter)
+
+        WRITE_REGISTRY[self.framework](self._data, filename)
+
+        self._data.clear()
+        self._current_size = 0
+        self._file_counter += 1
+
+    def flush(self):
+        """Force save current cache."""
+        self._flush()
+
+    def flush_final(self):
+        """Force save current cache."""
+        self._flush()
+        self._file_counter = 0
 
 
 WRITE_REGISTRY = {
