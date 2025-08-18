@@ -1,6 +1,7 @@
 import json
 import logging
 import re
+from enum import Enum
 from pathlib import Path
 from typing import Any
 
@@ -16,6 +17,13 @@ __all__ = [
 AnyArray = Any
 
 PATH_SEP = "."
+
+
+class FrameworkEnum(str, Enum):
+    """Framework enum"""
+
+    jax = "jax"
+    torch = "torch"
 
 
 def unflatten_dict(d: dict[str, Any], sep: str = PATH_SEP) -> dict[str, Any]:
@@ -97,6 +105,6 @@ def read_from_safetensors(
 
 
 WRITE_REGISTRY = {
-    "jax": save_to_safetensors_jax,
-    "torch": save_to_safetensors_torch,
+    FrameworkEnum.jax: save_to_safetensors_jax,
+    FrameworkEnum.torch: save_to_safetensors_torch,
 }

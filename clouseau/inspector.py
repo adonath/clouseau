@@ -18,12 +18,12 @@ of the inputs as well later.
 """
 
 import logging
-from enum import Enum
 from pathlib import Path
 from typing import Any, Callable
 
 from .io_utils import (
     WRITE_REGISTRY,
+    FrameworkEnum,
     read_from_safetensors,
 )
 from .visualize import print_tree
@@ -39,13 +39,6 @@ PATH_SEP = "."
 
 AnyArray = Any
 AnyModel = Any
-
-
-class FrameworkEnum(str, Enum):
-    """Framework enum"""
-
-    jax = "jax"
-    torch = "torch"
 
 
 def is_torch_model(model: AnyModel) -> bool:
