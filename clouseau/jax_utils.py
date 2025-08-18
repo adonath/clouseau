@@ -74,7 +74,7 @@ def wrap_model_helper(
     node = treedef.unflatten(children)
 
     if filter_(path, node):
-        return _ClouseauJaxWrapper(node, path=join_path(path))
+        return _ClouseauJaxWrapper(node, key_path=join_path(path))
 
     return node
 
@@ -111,13 +111,13 @@ class _ClouseauJaxWrapper:
     """
 
     _model: Callable
-    path: str
+    key_path: str
     call_name: str = "__call__"
 
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
         x = getattr(self._model, self.call_name)(*args, **kwargs)
 
-        key = self.path + PATH_SEP + self.call_name
+        key = self.key_path + PATH_SEP + self.call_name
         callback = partial(add_to_cache_jax, key=key)
         jax.experimental.io_callback(callback, x, x)
         return x
