@@ -71,7 +71,7 @@ def wrap_model_helper(
         )
         for p, _ in children
     ]
-    node = treedef.unflatten(children)
+    node = treedef.unflatten(children)  # type: ignore[attr-defined]
 
     if filter_(path, node):
         return _ClouseauJaxWrapper(node, key_path=join_path(path))

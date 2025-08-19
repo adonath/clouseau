@@ -47,11 +47,11 @@ def show(args: Show) -> None:
     data = unflatten_dict(read_from_safetensors(path, key_pattern=args.key_pattern))
 
     FORMATTER_REGISTRY[np.ndarray] = (
-        lambda _: ArrayShapeFormatter()(_)
+        lambda _: ArrayShapeFormatter()(_)  # type: ignore[assignment]
         + "\n"
         + args.fmt_stats(_)
         + "\n"
-        + args.fmt_values(_)  # type: ignore[assignment]
+        + args.fmt_values(_)
     )
 
     if args.show_meta:
