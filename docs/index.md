@@ -53,8 +53,7 @@ with inspector.tail(model) as m:
 This executes the forward pass of the model and records all `forward` operations. You can then inspect the recorded arrays using:
 
 ```python
-# Only works in interactive sessions such as Jupyter and IPython
-# inspector.magnify(".clouseau/trace.safetensors")
+inspector.magnify(".clouseau/trace.safetensors")
 ```
 
 For PyTorch models the inspector registers a forward hook for each layer that matches the default filter, which is

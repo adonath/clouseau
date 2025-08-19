@@ -15,9 +15,13 @@ plugins:
   - mkdocstrings:
       handlers:
         python:
+          options:
+            docstring_style: numpy
           paths: ["clouseau"]
 theme:
   name: material
+  features:
+    - content.code.copy
   feature:
     tabs: true
   palette:
