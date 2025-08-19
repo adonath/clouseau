@@ -121,7 +121,7 @@ def test_torch(tmp_path):
         fm(x)
 
     data = inspector.read_from_safetensors(path, framework="torch")
-    assert tuple(data.keys()) == ("sub_model.linear.forward", "sub_model.forward")
+    assert tuple(data.keys()) == ("sub_model.linear.__call__", "sub_model.__call__")
 
 
 def test_equinox(tmp_path):
