@@ -95,7 +95,9 @@ def wrap_model(
     return getattr(model, "_model", model), None
 
 
-@partial(register_dataclass, data_fields=("_model",), meta_fields=("path", "call_name"))
+@partial(
+    register_dataclass, data_fields=("_model",), meta_fields=("key_path", "call_name")
+)
 @dataclass
 class _ClouseauJaxWrapper:
     """Jax module wrapper that applies a callback function after executing the module.
@@ -104,7 +106,7 @@ class _ClouseauJaxWrapper:
     ----------
     model : Callable
         The JAX model/function to wrap
-    path : str
+    key_path : str
         Location of the wrapped module within the pytree.
     call_name : str
         Name of the method to call on the model. Defaults to "__call__".
