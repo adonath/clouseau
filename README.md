@@ -58,7 +58,14 @@ from clouseau import inspector
 inspector.magnify("activations.safetensors")
 ```
 
-Which will print a tree view of the arrays in the file.
+Which will print a tree view of the arrays in the file. Alternatively you can use the command line interface like so:
+
+```
+clouseau show --filename activations.safetensors --key-pattern "0."
+
+```
+
+Where `--key-pattern` will accept any regular expression to match the path of array leave in the file.
 
 ### PyTorch Example
 
