@@ -5,13 +5,14 @@ from typing import Any, Callable, Union
 import jax
 from jax.tree_util import GetAttrKey, SequenceKey, register_dataclass
 
-from .io_utils import PATH_SEP
+from .io_utils import PATH_SEP, ArrayCache, FrameworkEnum
 
 JaxKeys = Union[GetAttrKey, SequenceKey]  # type: ignore[no-any-unimported]
 
 AnyArray = Any
 
-CACHE: dict[str, list[AnyArray]] = {}
+
+CACHE: ArrayCache = ArrayCache(framework=FrameworkEnum.jax)
 
 
 # only works in latest jax
@@ -44,8 +45,7 @@ def get_node_types(treedef: Any) -> list[type]:
 
 def add_to_cache_jax(x: AnyArray, key: str) -> Any:
     """Add a intermediate x to the global cache"""
-    CACHE.setdefault(key, [])
-    CACHE[key].append(jax.lax.stop_gradient(x))
+    CACHE.add(key, jax.lax.stop_gradient(x))
     return x
 
 
@@ -121,7 +121,7 @@ class _ClouseauJaxWrapper:
 
         key = self.key_path + PATH_SEP + self.call_name
         callback = partial(add_to_cache_jax, key=key)
-        jax.experimental.io_callback(callback, x, x)
+        jax.experimental.io_callback(callback, x, x)  # type: ignore[unresolved-attribute]
         return x
 
     def __getattr__(self, name: str) -> Any:

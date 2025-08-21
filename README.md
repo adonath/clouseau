@@ -46,7 +46,7 @@ x = jax.random.normal(jax.random.PRNGKey(0), (764,))
 def is_leaf(path, node):
     return isinstance(node, jax.Array) or node in (jax.nn.relu, jax.nn.sigmoid)
 
-with inspector.tail(model, path="activations.safetensors", is_leaf=is_leaf) as m:
+with inspector.tail(model, is_leaf=is_leaf) as m:
     m(x)
 ```
 
@@ -55,7 +55,7 @@ Then in an interactive session inspect the recorded activations:
 ```python
 from clouseau import inspector
 
-inspector.magnify("activations.safetensors")
+inspector.magnify(".clouseau/activations-000.safetensors")
 ```
 
 Which will print a tree view of the arrays in the file. Alternatively you can use the command line interface like so:

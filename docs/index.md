@@ -53,7 +53,7 @@ with inspector.tail(model) as m:
 This executes the forward pass of the model and records all `forward` operations. You can then inspect the recorded arrays using:
 
 ```python
-inspector.magnify(".clouseau/trace.safetensors")
+inspector.magnify(".clouseau/activations-000.safetensors")
 ```
 
 For PyTorch models the inspector registers a forward hook for each layer that matches the default filter, which is
@@ -92,7 +92,7 @@ x = jax.random.normal(keys[3], (764,))
 def is_leaf(path, node):
     return isinstance(node, jax.Array) or node in (jax.nn.relu, jax.nn.sigmoid)
 
-with inspector.tail(model, path=path / "activations.safetensors", is_leaf=is_leaf) as m:
+with inspector.tail(model, path=path, is_leaf=is_leaf) as m:
     m(x)
 ```
 
@@ -116,7 +116,7 @@ Now we can use the model above and e.g. only trace the output of the activation 
 def filter_(path, node):
     return node in (jax.nn.relu, jax.nn.sigmoid)
 
-with inspector.tail(model, path=path / "trace-jax-filtered.safetensors", filter_=filter_, is_leaf=is_leaf) as m:
+with inspector.tail(model, path=path, filter_=filter_, is_leaf=is_leaf, filename_pattern="trace-jax-filtered-{idx:03d}.safetensors") as m:
     m(x)
 ```
 
@@ -126,7 +126,7 @@ Alternatively you can also filter on the content of the path, like so:
 def filter_(path, node):
     return "act" in path
 
-with inspector.tail(model, path=path / "trace-jax-filtered.safetensors", filter_=filter_, is_leaf=is_leaf) as m:
+with inspector.tail(model, path=path, filter_=filter_, is_leaf=is_leaf) as m:
     m(x)
 
 ```
@@ -143,5 +143,5 @@ on read:
 ```python
 from clouseau.io_utils import read_from_safetensors
 
-arrays = read_from_safetensors(path / "activations.safetensors")
+arrays = read_from_safetensors(path / "activations-000.safetensors")
 ```

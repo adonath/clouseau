@@ -22,13 +22,13 @@ from pathlib import Path
 from typing import Any, Callable
 
 from .io_utils import (
-    WRITE_REGISTRY,
+    ArrayCache,
     FrameworkEnum,
     read_from_safetensors,
 )
 from .visualize import print_tree
 
-DEFAULT_PATH = Path.cwd() / ".clouseau" / "trace.safetensors"
+DEFAULT_PATH = Path.cwd() / ".clouseau"
 
 __all__ = ["magnify", "tail"]
 
@@ -72,13 +72,17 @@ class _Recorder:
         path: str | Path = DEFAULT_PATH,
         filter_: Callable[[tuple[str, ...], Any], bool] | None = None,
         is_leaf: Callable[[tuple[str, ...], Any], bool] | None = None,
+        filename_pattern: str = "activations-{idx:03d}.safetensors",
+        max_size_mb: int = 1024**3,
     ):
         self.model = model
         self.path = Path(path)
         self.filter_ = filter_
         self.is_leaf = is_leaf
+        self.filename_pattern = filename_pattern
+        self.max_size_mb = max_size_mb
         self.hooks = None
-        self.cache: dict[str, Any] = {}
+        self.cache: ArrayCache | None = None
 
     @property
     def framework(self) -> FrameworkEnum:
@@ -98,7 +102,7 @@ class _Recorder:
         raise ValueError(message)
 
     def __enter__(self) -> AnyModel:
-        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self.path.mkdir(parents=True, exist_ok=True)
 
         if self.framework == FrameworkEnum.jax:
             from . import jax_utils as utils
@@ -106,7 +110,9 @@ class _Recorder:
             from . import torch_utils as utils  # type: ignore[no-redef]
 
         self.cache = utils.CACHE
-        self.cache.clear()
+        self.cache.path = self.path
+        self.cache.filename_pattern = self.filename_pattern
+        self.cache.max_size_bytes = self.max_size_mb * 1024**2
 
         wrapped_model, self.hooks = utils.wrap_model(
             model=self.model, filter_=self.filter_, is_leaf=self.is_leaf
@@ -119,11 +125,13 @@ class _Recorder:
         exc_value: BaseException | None,
         traceback: Any,
     ) -> None:
-        if not self.cache:
+        if not self.cache.data:
             log.warning("No arrays were recorded. Please check the filter function.")
 
-        WRITE_REGISTRY[self.framework](self.cache, self.path)
-        self.cache.clear()
+        self.cache.flush_final()
+
+        for name in ["path", "filename_pattern", "max_size_bytes"]:
+            setattr(self.cache, name, ArrayCache.__dataclass_fields__[name].default)
 
         if self.hooks:
             for _, hook in self.hooks.items():
@@ -135,6 +143,8 @@ def tail(
     path: str | Path = DEFAULT_PATH,
     filter_: Callable[[Any, Any], bool] | None = None,
     is_leaf: Callable[[Any, Any], bool] | None = None,
+    filename_pattern: str = "activations-{idx:03d}.safetensors",
+    max_size_mb: int = 1024**3,
 ) -> _Recorder:
     """Tail and record the forward pass of a model
 
@@ -171,7 +181,14 @@ def tail(
     ...     fmodel(x, time).block_until_ready()
 
     """
-    return _Recorder(model=model, path=path, filter_=filter_, is_leaf=is_leaf)
+    return _Recorder(
+        model=model,
+        path=path,
+        filter_=filter_,
+        is_leaf=is_leaf,
+        max_size_mb=max_size_mb,
+        filename_pattern=filename_pattern,
+    )
 
 
 def magnify(

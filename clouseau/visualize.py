@@ -39,9 +39,16 @@ class ArrayValuesFormatter:
         return f"[{self.color}]{str_value}[/{self.color}]"
 
 
-StatsFuncEnum = StrEnum(
-    "StatsFuncEnum", ["mean", "std", "min", "max", "non_zero", "is_nan"]
-)
+class StatsFuncEnum(StrEnum):
+    """Stats func enum"""
+
+    mean = "mean"
+    std = "std"
+    min = "min"
+    max = "max"
+    non_zero = "non_zero"
+    is_nan = "is_nan"
+
 
 STATS_FUNCS: dict[StatsFuncEnum, Callable[[np.ndarray], float]] = {
     StatsFuncEnum.mean: np.mean,
