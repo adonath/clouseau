@@ -43,10 +43,10 @@ def wrap_model(
         is_leaf = lambda p, _: _ is None
 
     def traverse(path: tuple[str, ...], node: Any) -> None:
-        if is_leaf(path, node):
+        if is_leaf(path, node):  # type: ignore[call-non-callable]
             return
 
-        if filter_(path, node):
+        if filter_(path, node):  # type: ignore[call-non-callable]
             name = PATH_SEP.join(path)
             hooks[name] = node.register_forward_hook(add_to_cache_torch(name))
 

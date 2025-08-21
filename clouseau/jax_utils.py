@@ -121,7 +121,7 @@ class _ClouseauJaxWrapper:
 
         key = self.key_path + PATH_SEP + self.call_name
         callback = partial(add_to_cache_jax, key=key)
-        jax.experimental.io_callback(callback, x, x)
+        jax.experimental.io_callback(callback, x, x)  # type: ignore[unresolved-attribute]
         return x
 
     def __getattr__(self, name: str) -> Any:

@@ -141,7 +141,7 @@ class ArrayCache:
         """Current cache size in MB."""
         return self.current_size / (1024 * 1024)
 
-    def add(self, key: str, array) -> bool:
+    def add(self, key: str, array) -> None:
         """Add array to cache. Returns True if cache was flushed."""
         array_size = array.nbytes
 
