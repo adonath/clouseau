@@ -128,7 +128,6 @@ class _Recorder:
         if not self.cache.data:
             log.warning("No arrays were recorded. Please check the filter function.")
 
-        # WRITE_REGISTRY[self.framework](self.cache, self.path)
         self.cache.flush_final()
 
         for name in ["path", "filename_pattern", "max_size_bytes"]:
@@ -144,6 +143,8 @@ def tail(
     path: str | Path = DEFAULT_PATH,
     filter_: Callable[[Any, Any], bool] | None = None,
     is_leaf: Callable[[Any, Any], bool] | None = None,
+    filename_pattern: str = "activations-{idx:03d}.safetensors",
+    max_size_mb: int = 1024**3,
 ) -> _Recorder:
     """Tail and record the forward pass of a model
 
@@ -180,7 +181,14 @@ def tail(
     ...     fmodel(x, time).block_until_ready()
 
     """
-    return _Recorder(model=model, path=path, filter_=filter_, is_leaf=is_leaf)
+    return _Recorder(
+        model=model,
+        path=path,
+        filter_=filter_,
+        is_leaf=is_leaf,
+        max_size_mb=max_size_mb,
+        filename_pattern=filename_pattern,
+    )
 
 
 def magnify(
