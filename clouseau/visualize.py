@@ -8,6 +8,36 @@ from rich.tree import Tree
 
 
 @dataclass(frozen=True)
+class ArrayDiffFormatter:
+    """Array values formatter"""
+
+    color_good: str = "green"
+    color_bad: str = "bright_red"
+    rtol: float = 1e-7
+    atol: float = 0
+    equal_nan: bool = True
+    verbose: bool = False
+
+    def __call__(self, value: np.ndarray, value_ref: np.ndarray) -> str:
+        try:
+            np.testing.assert_allclose(
+                value,
+                value_ref,
+                atol=self.atol,
+                rtol=self.rtol,
+                equal_nan=self.equal_nan,
+                verbose=self.verbose,
+            )
+        except AssertionError as e:
+            message = f"[{self.color_bad}]{e}[/{self.color_bad}]"
+        else:
+            str_value = f"Equal to tolerance rtol={self.rtol}, atol={self.atol}"
+            message = f"[{self.color_good}]{str_value}[/{self.color_good}]"
+
+        return message
+
+
+@dataclass(frozen=True)
 class ArrayShapeFormatter:
     """Array values formatter"""
 
