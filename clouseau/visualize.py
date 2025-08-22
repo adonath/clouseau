@@ -18,8 +18,8 @@ class ArrayDiffFormatter:
     equal_nan: bool = True
     verbose: bool = False
 
-    def __call__(self, value: tuple[np.ndarray, np.ndarray]) -> str:
-        value, value_ref = value
+    def __call__(self, value_tuple: tuple[np.ndarray, np.ndarray]) -> str:
+        value, value_ref = value_tuple
         try:
             np.testing.assert_allclose(
                 value,
@@ -124,19 +124,15 @@ def print_tree(tree_dict: dict[str, Any], label: str = "Tree") -> None:
     console.print(tree)
 
 
-def dict_to_tree(
-    data: dict[str, Any], label: str, data_ref: dict[str, Any] | None
-) -> Tree:
+def dict_to_tree(data: dict[str, Any], label: str) -> Tree:
     """Convert a dictionary to a rich.tree.Tree object using recursion."""
     tree = Tree(label)
 
-    _add_dict_to_tree(tree, data, data_ref)
+    _add_dict_to_tree(tree, data)
     return tree
 
 
-def _add_dict_to_tree(
-    parent_node: Tree, data: dict[str, Any], data_ref: dict[str, Any] | None
-) -> None:
+def _add_dict_to_tree(parent_node: Tree, data: dict[str, Any]) -> None:
     """Recursively add dictionary items to a tree node."""
     for key, value in data.items():
         if isinstance(value, dict):
