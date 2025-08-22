@@ -12,6 +12,7 @@ from safetensors import safe_open
 from clouseau.io_utils import read_from_safetensors, unflatten_dict
 from clouseau.visualize import (
     FORMATTER_REGISTRY,
+    ArrayDiffFormatter,
     ArrayShapeFormatter,
     ArrayStatsFormatter,
     ArrayValuesFormatter,
@@ -35,7 +36,9 @@ class Diff:
     """Compare two files and show differences"""
 
     filename: str
-    filename_other: str
+    filename_ref: str
+    key_pattern: str = ".*"  # regex pattern to match and select a path
+    fmt_diff: ArrayDiffFormatter = field(default_factory=ArrayDiffFormatter)
 
 
 Commands = Show | Diff
@@ -44,6 +47,12 @@ Commands = Show | Diff
 def show(args: Show) -> None:
     """Show contents of a single file"""
     path = Path(args.filename)
+
+    if args.show_meta:
+        with safe_open(args.filename, framework="numpy") as f:
+            print_json(data=f.metadata())
+            return
+
     data = unflatten_dict(read_from_safetensors(path, key_pattern=args.key_pattern))
 
     FORMATTER_REGISTRY[np.ndarray] = (
@@ -54,18 +63,30 @@ def show(args: Show) -> None:
         + args.fmt_values(_)
     )
 
-    if args.show_meta:
-        with safe_open(args.filename, framework="numpy") as f:
-            print_json(data=f.metadata())
-            return
-
     print_tree(data, label=f"File: [orchid]{path.name}[/orchid]")
 
 
 def diff(args: Diff) -> None:
     """Compare two files and show differences"""
-    # TODO: Implement diff functionality
-    print(f"Diffing files: {args.filename} and {args.filename_other}")
+    path, path_ref = Path(args.filename), Path(args.filename_ref)
+
+    data = read_from_safetensors(path, key_pattern=args.key_pattern)
+    data_ref = read_from_safetensors(path_ref, key_pattern=args.key_pattern)
+
+    if len(data) != len(data_ref):
+        message = (
+            f"Size of the sub-trees must match, got {len(data)} and {len(data_ref)}"
+        )
+        raise ValueError(message)
+
+    FORMATTER_REGISTRY[tuple] = lambda _: args.fmt_diff(_)
+
+    merged = {}
+
+    for (key, value), value_ref in zip(data.items(), data_ref.values()):
+        merged[key] = (value, value_ref)
+
+    print_tree(merged, label=f"File: [orchid]{path.name}[/orchid]")
 
 
 def main() -> None:
