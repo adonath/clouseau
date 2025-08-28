@@ -15,6 +15,21 @@ AnyArray = Any
 CACHE: ArrayCache = ArrayCache(framework=FrameworkEnum.jax)
 
 
+def assert_shapes_equal(pytree, other_pytree):
+    """Assert that the array shapes of two models are equal."""
+    paths, treedef = jax.tree.flatten_with_path(pytree)
+    paths_other, treedef_other = jax.tree.flatten_with_path(other_pytree)
+
+    if not treedef == treedef_other:
+        message = f"Tree definitions do not match, got {treedef} and {treedef_other}"
+        raise ValueError(message)
+
+    for (path, value), (_, value_other) in zip(paths, paths_other):
+        if value.shape != value_other.shape:
+            message = f"Shape mismatch at path {join_path(path)}, got {value.shape} and {value_other.shape}"
+            raise ValueError(message)
+
+
 # only works in latest jax
 # join_path = partial(keystr, simple=True, separator=PATH_SEP)
 def join_path(path: tuple[JaxKeys, ...]) -> str:
