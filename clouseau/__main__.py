@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -39,6 +40,10 @@ class Diff:
     filename: str
     filename_ref: str
     key_pattern: str = ".*"  # regex pattern to match and select a path
+    # ordered regex (pattern -> replacement) rules applied to the keys of
+    # ``filename`` to align them with the reference naming, e.g.
+    # --key-map "layers" "blocks" "\.weight" ".__call__"
+    key_map: dict[str, str] = field(default_factory=dict)
     fmt_diff: ArrayDiffFormatter = field(default_factory=ArrayDiffFormatter)
 
 
@@ -67,11 +72,38 @@ def show(args: Show) -> None:
     print_tree(data, label=f"File: [orchid]{path.name}[/orchid]")
 
 
+def remap_keys(data: dict[str, Any], key_map: dict[str, str]) -> dict[str, Any]:
+    """Rewrite keys using ordered regex (pattern -> replacement) rules.
+
+    Useful for cross-framework diffs where the same layer is named differently in
+    each file (e.g. PyTorch ``layers.0`` vs JAX/Equinox ``blocks.0``). Rules are
+    applied in order with :func:`re.sub` to every key.
+    """
+    if not key_map:
+        return data
+
+    remapped: dict[str, Any] = {}
+    for key, value in data.items():
+        new_key = key
+        for pattern, replacement in key_map.items():
+            new_key = re.sub(pattern, replacement, new_key)
+
+        if new_key in remapped:
+            message = f"Key map is not injective: {key!r} collides on {new_key!r}"
+            raise ValueError(message)
+
+        remapped[new_key] = value
+
+    return remapped
+
+
 def diff(args: Diff) -> None:
     """Compare two files and show differences, aligning leaves by key/path"""
     path, path_ref = Path(args.filename), Path(args.filename_ref)
 
-    data = read_from_safetensors(path, key_pattern=args.key_pattern)
+    data = remap_keys(
+        read_from_safetensors(path, key_pattern=args.key_pattern), args.key_map
+    )
     data_ref = read_from_safetensors(path_ref, key_pattern=args.key_pattern)
 
     FORMATTER_REGISTRY[tuple] = lambda _: args.fmt_diff(_)
