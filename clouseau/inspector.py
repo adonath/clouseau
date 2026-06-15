@@ -125,13 +125,17 @@ class _Recorder:
         exc_value: BaseException | None,
         traceback: Any,
     ) -> None:
-        if not self.cache.data:
-            log.warning("No arrays were recorded. Please check the filter function.")
+        cache = self.cache
+        if cache is not None:
+            if not cache.data:
+                log.warning(
+                    "No arrays were recorded. Please check the filter function."
+                )
 
-        self.cache.flush_final()
+            cache.flush_final()
 
-        for name in ["path", "filename_pattern", "max_size_bytes"]:
-            setattr(self.cache, name, ArrayCache.__dataclass_fields__[name].default)
+            for name in ["path", "filename_pattern", "max_size_bytes"]:
+                setattr(cache, name, ArrayCache.__dataclass_fields__[name].default)
 
         if self.hooks:
             for _, hook in self.hooks.items():

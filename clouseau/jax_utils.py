@@ -3,6 +3,7 @@ from functools import partial
 from typing import Any, Callable, Union
 
 import jax
+import jax.experimental
 import numpy as np
 from jax.tree_util import GetAttrKey, SequenceKey, register_dataclass
 
@@ -21,7 +22,7 @@ def assert_shapes_equal(pytree, other_pytree):
     paths, treedef = jax.tree.flatten_with_path(pytree)
     paths_other, treedef_other = jax.tree.flatten_with_path(other_pytree)
 
-    if not treedef == treedef_other:
+    if treedef != treedef_other:
         message = f"Tree definitions do not match, got {treedef} and {treedef_other}"
         raise ValueError(message)
 

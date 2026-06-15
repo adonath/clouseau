@@ -131,7 +131,7 @@ def diff(args: Diff) -> None:
 
 
 def main() -> None:
-    args = tyro.cli(  # type: ignore[call-overload]
+    args = tyro.cli(  # ty: ignore[no-matching-overload]
         Commands, description="Show and diff content of safetensors files"
     )
 

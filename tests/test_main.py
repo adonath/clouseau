@@ -1,9 +1,8 @@
 import json
 
 import numpy as np
-from safetensors.numpy import save_file
-
 import pytest
+from safetensors.numpy import save_file
 
 from clouseau.__main__ import Diff, diff, remap_keys
 

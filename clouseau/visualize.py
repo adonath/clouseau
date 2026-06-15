@@ -114,7 +114,7 @@ def format_np_array(value: np.ndarray) -> str:
     return ArrayStatsFormatter()(value) + "\n" + ArrayValuesFormatter()(value)
 
 
-FORMATTER_REGISTRY = {np.ndarray: format_np_array}
+FORMATTER_REGISTRY: dict[type, Callable[[Any], str]] = {np.ndarray: format_np_array}
 
 
 def print_tree(tree_dict: dict[str, Any], label: str = "Tree") -> None:
