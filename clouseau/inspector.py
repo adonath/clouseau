@@ -73,7 +73,7 @@ class _Recorder:
         filter_: Callable[[tuple[str, ...], Any], bool] | None = None,
         is_leaf: Callable[[tuple[str, ...], Any], bool] | None = None,
         filename_pattern: str = "activations-{idx:03d}.safetensors",
-        max_size_mb: int = 1024**3,
+        max_size_mb: int = 1024,
     ):
         self.model = model
         self.path = Path(path)
@@ -144,7 +144,7 @@ def tail(
     filter_: Callable[[Any, Any], bool] | None = None,
     is_leaf: Callable[[Any, Any], bool] | None = None,
     filename_pattern: str = "activations-{idx:03d}.safetensors",
-    max_size_mb: int = 1024**3,
+    max_size_mb: int = 1024,
 ) -> _Recorder:
     """Tail and record the forward pass of a model
 

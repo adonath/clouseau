@@ -23,7 +23,9 @@ def add_to_cache_torch(key: str) -> Callable:
             )
             output = output[0]
 
-        CACHE.add(key_full, output.detach().clone())
+        # move to host so accumulated activations do not pile up in device memory;
+        # copy=True guarantees an independent buffer even when already on CPU
+        CACHE.add(key_full, output.detach().to("cpu", copy=True))
 
     return hook
 

@@ -3,6 +3,7 @@ from functools import partial
 from typing import Any, Callable, Union
 
 import jax
+import numpy as np
 from jax.tree_util import GetAttrKey, SequenceKey, register_dataclass
 
 from .io_utils import PATH_SEP, ArrayCache, FrameworkEnum
@@ -60,7 +61,10 @@ def get_node_types(treedef: Any) -> list[type]:
 
 def add_to_cache_jax(x: AnyArray, key: str) -> Any:
     """Add a intermediate x to the global cache"""
-    CACHE.add(key, jax.lax.stop_gradient(x))
+    # np.asarray forces a host copy so accumulated activations do not pile up in
+    # device memory; io_callback already breaks the gradient path, so there is no
+    # need for an explicit stop_gradient here.
+    CACHE.add(key, np.asarray(x))
     return x
 
 

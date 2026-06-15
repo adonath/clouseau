@@ -112,7 +112,7 @@ class ArrayCache:
 
     framework: FrameworkEnum
     max_size_bytes: int = 1024**3
-    path: str = ".clouseau"
+    path: Path = Path(".clouseau")
     filename_pattern: str = "activations-{idx:03d}.safetensors"
     _current_size: int = 0
     _data: dict[str, list[AnyArray]] = field(default_factory=lambda: defaultdict(list))
