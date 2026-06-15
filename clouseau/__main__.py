@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import tyro
@@ -67,26 +68,34 @@ def show(args: Show) -> None:
 
 
 def diff(args: Diff) -> None:
-    """Compare two files and show differences"""
+    """Compare two files and show differences, aligning leaves by key/path"""
     path, path_ref = Path(args.filename), Path(args.filename_ref)
 
     data = read_from_safetensors(path, key_pattern=args.key_pattern)
     data_ref = read_from_safetensors(path_ref, key_pattern=args.key_pattern)
 
-    if len(data) != len(data_ref):
-        message = (
-            f"Size of the sub-trees must match, got {len(data)} and {len(data_ref)}"
-        )
-        raise ValueError(message)
-
     FORMATTER_REGISTRY[tuple] = lambda _: args.fmt_diff(_)
 
-    merged = {}
+    # Align leaves by key/path rather than by position. data_ref is the
+    # reference, so iterate it first (it drives the ordering) and flag any leaf
+    # that is missing from the file under test or only present in it.
+    merged: dict[str, Any] = {}
 
-    for (key, value), value_ref in zip(data.items(), data_ref.values()):
-        merged[key] = (value, value_ref)
+    for key, value_ref in data_ref.items():
+        if key in data:
+            merged[key] = (data[key], value_ref)
+        else:
+            merged[key] = f"[yellow]missing in {path.name}[/yellow]"
 
-    print_tree(merged, label=f"File: [orchid]{path.name}[/orchid]")
+    for key in data:
+        if key not in data_ref:
+            merged[key] = f"[yellow]only in {path.name}, not in reference[/yellow]"
+
+    label = (
+        f"File: [orchid]{path.name}[/orchid] "
+        f"vs reference [orchid]{path_ref.name}[/orchid]"
+    )
+    print_tree(merged, label=label)
 
 
 def main() -> None:
