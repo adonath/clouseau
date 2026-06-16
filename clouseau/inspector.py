@@ -201,7 +201,9 @@ def tail(
 
 
 def magnify(
-    filename: str | Path = DEFAULT_PATH, framework: str = "numpy", device: Any = None
+    filename: str | Path = DEFAULT_PATH / "activations-000.safetensors",
+    framework: str = "numpy",
+    device: Any = None,
 ) -> None:
     """Visualize nested arrays using treescope"""
     data = read_from_safetensors(filename, framework=framework, device=device)

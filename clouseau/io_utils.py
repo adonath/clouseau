@@ -118,7 +118,7 @@ class ArrayCache:
     filename_pattern: str = "activations-{idx:03d}.safetensors"
     _current_size: int = 0
     _data: dict[str, list[AnyArray]] = field(default_factory=lambda: defaultdict(list))
-    _file_counter = 0
+    _file_counter: int = 0
 
     def __post_init__(self):
         self.path = Path(self.path)
@@ -135,7 +135,7 @@ class ArrayCache:
 
     @property
     def file_counter(self):
-        """Current size"""
+        """Index of the next safetensors file to write."""
         return self._file_counter
 
     @property
@@ -169,11 +169,11 @@ class ArrayCache:
         self._file_counter += 1
 
     def flush(self):
-        """Force save current cache."""
+        """Force save the current cache, advancing the file counter."""
         self._flush()
 
     def flush_final(self):
-        """Force save current cache."""
+        """Flush the remaining cache and reset the file counter for reuse."""
         self._flush()
         self._file_counter = 0
 
