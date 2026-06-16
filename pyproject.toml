@@ -21,6 +21,13 @@ dependencies = [
     "tyro>=0.9.28",
 ]
 
+[project.optional-dependencies]
+# clouseau imports torch / jax lazily, so the framework you record from is an
+# opt-in extra rather than a hard dependency.
+torch = ["torch>=2.6.0"]
+jax = ["jax>=0.4.30"]
+all = ["torch>=2.6.0", "jax>=0.4.30"]
+
 [project.urls]
 Homepage = "https://adonath.github.io/clouseau/"
 Repository = "https://github.com/adonath/clouseau"

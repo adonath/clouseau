@@ -20,6 +20,15 @@ to a file for later inspection. It is useful for debugging models or transitioni
 pip install clouseau
 ```
 
+`clouseau` imports PyTorch and JAX lazily, so neither is a hard dependency. Pull
+in the framework you record from via an extra:
+
+```bash
+pip install "clouseau[torch]"  # PyTorch
+pip install "clouseau[jax]"    # JAX
+pip install "clouseau[all]"    # both
+```
+
 ## Usage
 
 ### Jax / Equinox Example
