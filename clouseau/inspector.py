@@ -52,15 +52,26 @@ def is_torch_model(model: AnyModel) -> bool:
 
 
 def is_jax_model(model: AnyModel) -> bool:
-    """Check if model is a jax model"""
+    """Check if model is a jax model.
+
+    Any Python object is a valid pytree (a bare object flattens to itself as a
+    single leaf), so ``jax.tree.flatten`` alone would accept almost anything,
+    e.g. an ``int``. We additionally require ``model`` to be a non-leaf pytree
+    node that carries at least one ``jax.Array`` leaf, i.e. a container with
+    parameters that clouseau can actually record.
+    """
     try:
         import jax
-
-        jax.tree.flatten(model)
-    except (ImportError, TypeError):
+    except ImportError:
         return False
-    else:
-        return True
+
+    leaves, treedef = jax.tree.flatten(model)
+
+    # a bare leaf (int, str, plain object, or a raw array) flattens to itself
+    if treedef.num_leaves == 1 and leaves[0] is model:
+        return False
+
+    return any(isinstance(leaf, jax.Array) for leaf in leaves)
 
 
 class _Recorder:
