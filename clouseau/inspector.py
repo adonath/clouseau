@@ -104,18 +104,26 @@ class _Recorder:
     def __enter__(self) -> AnyModel:
         self.path.mkdir(parents=True, exist_ok=True)
 
-        if self.framework == FrameworkEnum.jax:
+        framework = self.framework
+        if framework == FrameworkEnum.jax:
             from . import jax_utils as utils
-        elif self.framework == FrameworkEnum.torch:
+        elif framework == FrameworkEnum.torch:
             from . import torch_utils as utils  # type: ignore[no-redef]
 
-        self.cache = utils.CACHE
-        self.cache.path = self.path
-        self.cache.filename_pattern = self.filename_pattern
-        self.cache.max_size_bytes = self.max_size_mb * 1024**2
+        # each recorder owns its cache so concurrent / nested `tail` contexts do
+        # not clobber each other's config or share recorded data
+        self.cache = ArrayCache(
+            framework=framework,
+            path=self.path,
+            filename_pattern=self.filename_pattern,
+            max_size_bytes=self.max_size_mb * 1024**2,
+        )
 
         wrapped_model, self.hooks = utils.wrap_model(
-            model=self.model, filter_=self.filter_, is_leaf=self.is_leaf
+            model=self.model,
+            cache=self.cache,
+            filter_=self.filter_,
+            is_leaf=self.is_leaf,
         )
         return wrapped_model
 
@@ -133,9 +141,6 @@ class _Recorder:
                 )
 
             cache.flush_final()
-
-            for name in ["path", "filename_pattern", "max_size_bytes"]:
-                setattr(cache, name, ArrayCache.__dataclass_fields__[name].default)
 
         if self.hooks:
             for _, hook in self.hooks.items():

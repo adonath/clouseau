@@ -7,14 +7,11 @@ import jax.experimental
 import numpy as np
 from jax.tree_util import GetAttrKey, SequenceKey, register_dataclass
 
-from .io_utils import PATH_SEP, ArrayCache, FrameworkEnum
+from .io_utils import PATH_SEP, ArrayCache
 
 JaxKeys = Union[GetAttrKey, SequenceKey]  # type: ignore[no-any-unimported]
 
 AnyArray = Any
-
-
-CACHE: ArrayCache = ArrayCache(framework=FrameworkEnum.jax)
 
 
 def assert_shapes_equal(pytree, other_pytree):
@@ -60,17 +57,18 @@ def get_node_types(treedef: Any) -> list[type]:
     return sorted(node_types, key=lambda x: x.__name__)
 
 
-def add_to_cache_jax(x: AnyArray, key: str) -> Any:
-    """Add a intermediate x to the global cache"""
+def add_to_cache_jax(x: AnyArray, key: str, cache: ArrayCache) -> Any:
+    """Add a intermediate x to the given cache"""
     # np.asarray forces a host copy so accumulated activations do not pile up in
     # device memory; io_callback already breaks the gradient path, so there is no
     # need for an explicit stop_gradient here.
-    CACHE.add(key, np.asarray(x))
+    cache.add(key, np.asarray(x))
     return x
 
 
 def wrap_model_helper(
     node: Any,
+    cache: ArrayCache,
     filter_: Callable,
     is_leaf: Callable,
     path: tuple[JaxKeys, ...] = (),
@@ -85,6 +83,7 @@ def wrap_model_helper(
     children = [
         wrap_model_helper(
             _,
+            cache=cache,
             is_leaf=is_leaf,
             filter_=filter_,
             path=(*path, p[0]),
@@ -94,13 +93,14 @@ def wrap_model_helper(
     node = treedef.unflatten(children)  # type: ignore[attr-defined]
 
     if filter_(path, node):
-        return _ClouseauJaxWrapper(node, key_path=join_path(path))
+        return _ClouseauJaxWrapper(node, key_path=join_path(path), cache=cache)
 
     return node
 
 
 def wrap_model(
     model: Any,
+    cache: ArrayCache,
     filter_: Callable[[tuple[str, ...], Any], bool] | None = None,
     is_leaf: Callable | None = None,
 ) -> tuple[Any, None]:
@@ -111,12 +111,14 @@ def wrap_model(
     if is_leaf is None:
         is_leaf = lambda p, _: isinstance(_, jax.Array) or _ is None
 
-    model = wrap_model_helper(model, filter_=filter_, is_leaf=is_leaf)
+    model = wrap_model_helper(model, cache=cache, filter_=filter_, is_leaf=is_leaf)
     return getattr(model, "_model", model), None
 
 
 @partial(
-    register_dataclass, data_fields=("_model",), meta_fields=("key_path", "call_name")
+    register_dataclass,
+    data_fields=("_model",),
+    meta_fields=("key_path", "call_name", "cache"),
 )
 @dataclass
 class _ClouseauJaxWrapper:
@@ -128,19 +130,23 @@ class _ClouseauJaxWrapper:
         The JAX model/function to wrap
     key_path : str
         Location of the wrapped module within the pytree.
+    cache : ArrayCache
+        Cache the recorded activations are written to. Carried as a static (meta)
+        field so it survives JAX pytree flatten / unflatten.
     call_name : str
         Name of the method to call on the model. Defaults to "__call__".
     """
 
     _model: Callable
     key_path: str
+    cache: ArrayCache
     call_name: str = "__call__"
 
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
         x = getattr(self._model, self.call_name)(*args, **kwargs)
 
         key = self.key_path + PATH_SEP + self.call_name
-        callback = partial(add_to_cache_jax, key=key)
+        callback = partial(add_to_cache_jax, key=key, cache=self.cache)
         jax.experimental.io_callback(callback, x, x)  # type: ignore[unresolved-attribute]
         return x
 

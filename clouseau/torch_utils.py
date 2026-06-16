@@ -5,15 +5,13 @@ from typing import Any
 import torch
 from torch import nn
 
-from .io_utils import PATH_SEP, ArrayCache, FrameworkEnum
-
-CACHE: ArrayCache = ArrayCache(framework=FrameworkEnum.torch)
+from .io_utils import PATH_SEP, ArrayCache
 
 log = logging.getLogger(__file__)
 
 
-def add_to_cache_torch(key: str) -> Callable:
-    """Add a intermediate x to the global cache"""
+def add_to_cache_torch(key: str, cache: ArrayCache) -> Callable:
+    """Add a intermediate x to the given cache"""
 
     def hook(module: nn.Module, input_: Any, output: torch.Tensor) -> None:
         key_full = key + PATH_SEP + "__call__"
@@ -25,13 +23,14 @@ def add_to_cache_torch(key: str) -> Callable:
 
         # move to host so accumulated activations do not pile up in device memory;
         # copy=True guarantees an independent buffer even when already on CPU
-        CACHE.add(key_full, output.detach().to("cpu", copy=True))
+        cache.add(key_full, output.detach().to("cpu", copy=True))
 
     return hook
 
 
 def wrap_model(
     model: nn.Module,
+    cache: ArrayCache,
     filter_: Callable[[tuple[str, ...], Any], bool] | None = None,
     is_leaf: Callable | None = None,
 ) -> tuple[nn.Module, dict[str, torch.utils.hooks.RemovableHandle]]:
@@ -50,7 +49,7 @@ def wrap_model(
 
         if filter_(path, node):  # type: ignore[call-non-callable]
             name = PATH_SEP.join(path)
-            hooks[name] = node.register_forward_hook(add_to_cache_torch(name))
+            hooks[name] = node.register_forward_hook(add_to_cache_torch(name, cache))
 
         for p, child in node.named_children():
             traverse((*path, p), child)

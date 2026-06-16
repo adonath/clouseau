@@ -106,7 +106,9 @@ def read_from_safetensors(
     return data
 
 
-@dataclass
+# eq=False keeps the default identity-based hash so an ArrayCache instance can be
+# carried as a static (meta) field of the JAX pytree wrapper, see jax_utils.py.
+@dataclass(eq=False)
 class ArrayCache:
     """Simple cache for dict of lists of arrays with automatic safetensors saving."""
 
