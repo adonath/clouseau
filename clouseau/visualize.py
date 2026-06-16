@@ -9,33 +9,55 @@ from rich.tree import Tree
 
 @dataclass(frozen=True)
 class ArrayDiffFormatter:
-    """Array values formatter"""
+    """Quantitative diff between an array and a reference array.
+
+    Reports the *magnitude* of the divergence (max absolute and max relative
+    difference) and how many elements exceed the tolerance, instead of a bare
+    pass/fail. This is far more useful for cross-framework comparisons, where
+    float32 results routinely differ by a few ulp due to differing accumulation
+    order and an exact match is the exception rather than the rule. The relative
+    difference is taken against the reference (the second entry of the tuple).
+
+    The defaults match the float32 tolerances used by ``torch.testing.assert_close``.
+    """
 
     color_good: str = "green"
     color_bad: str = "bright_red"
-    rtol: float = 1e-7
-    atol: float = 0
+    rtol: float = 1.3e-6
+    atol: float = 1e-5
     equal_nan: bool = True
-    verbose: bool = False
+    fmt: str = "{:.2e}"
 
     def __call__(self, value_tuple: tuple[np.ndarray, np.ndarray]) -> str:
-        value, value_ref = value_tuple
-        try:
-            np.testing.assert_allclose(
-                value,
-                value_ref,
-                atol=self.atol,
-                rtol=self.rtol,
-                equal_nan=self.equal_nan,
-                verbose=self.verbose,
-            )
-        except AssertionError as e:
-            message = f"[{self.color_bad}]{e}[/{self.color_bad}]"
-        else:
-            str_value = f"Equal to tolerance rtol={self.rtol}, atol={self.atol}"
-            message = f"[{self.color_good}]{str_value}[/{self.color_good}]"
+        value, value_ref = (np.asarray(_) for _ in value_tuple)
 
-        return message
+        if value.shape != value_ref.shape:
+            message = f"shape mismatch: {value.shape} vs reference {value_ref.shape}"
+            return f"[{self.color_bad}]{message}[/{self.color_bad}]"
+
+        abs_diff = np.abs(value - value_ref)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            rel_diff = abs_diff / np.abs(value_ref)
+
+        finite_abs = abs_diff[np.isfinite(abs_diff)]
+        finite_rel = rel_diff[np.isfinite(rel_diff)]
+        max_abs = float(finite_abs.max()) if finite_abs.size else 0.0
+        max_rel = float(finite_rel.max()) if finite_rel.size else 0.0
+
+        close = np.isclose(
+            value, value_ref, rtol=self.rtol, atol=self.atol, equal_nan=self.equal_nan
+        )
+        n_exceed = int((~close).sum())
+
+        color = self.color_good if n_exceed == 0 else self.color_bad
+        label = "close" if n_exceed == 0 else "differs"
+
+        message = (
+            f"{label} (max_abs={self.fmt.format(max_abs)}, "
+            f"max_rel={self.fmt.format(max_rel)}, "
+            f"{n_exceed}/{value.size} exceed rtol={self.rtol}, atol={self.atol})"
+        )
+        return f"[{color}]{message}[/{color}]"
 
 
 @dataclass(frozen=True)

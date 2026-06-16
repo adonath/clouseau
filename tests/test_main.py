@@ -5,6 +5,7 @@ import pytest
 from safetensors.numpy import save_file
 
 from clouseau.__main__ import Diff, diff, remap_keys
+from clouseau.visualize import ArrayDiffFormatter
 
 
 def _save(path, arrays, order):
@@ -42,10 +43,13 @@ def test_diff(tmp_path, capsys, monkeypatch):
     out = capsys.readouterr().out
 
     # aligned by name despite the differing on-disk order
-    assert "a: Equal to tolerance" in out
-    # data_ref is the reference: value is ACTUAL, reference is DESIRED
-    assert "Not equal to tolerance" in out
-    assert "2.5 (ACTUAL), 2.0 (DESIRED)" in out
+    assert "a: close" in out
+    # quantitative divergence is reported, not just pass/fail
+    assert "differs" in out
+    assert "max_abs=5.00e-01" in out
+    assert "3/3 exceed" in out
+    # max_rel is taken against the reference (0.5 / 2.0 = 0.25, not 0.5 / 2.5)
+    assert "max_rel=2.50e-01" in out
     # reference-only and file-only leaves are surfaced, not mis-aligned
     assert "c: missing in fut.safetensors" in out
     assert "x: only in fut.safetensors, not in reference" in out
@@ -86,5 +90,26 @@ def test_diff_key_map(tmp_path, capsys, monkeypatch):
     out = capsys.readouterr().out
 
     # remapped key now aligns with the reference instead of being flagged missing
-    assert "blocks.0.__call__: Equal to tolerance" in out
+    assert "blocks.0.__call__: close" in out
     assert "missing" not in out
+
+
+def test_array_diff_formatter_reports_magnitude():
+    fmt = ArrayDiffFormatter()
+    ref = np.ones(1000, np.float32)
+
+    # a few-ulp float32 difference is reported as close, not a hard failure
+    near = ref + np.float32(5e-6)
+    assert "close" in fmt((near, ref))
+
+    far = ref.copy()
+    far[0] = 2.0
+    out = fmt((far, ref))
+    assert "differs" in out
+    assert "max_abs=1.00e+00" in out
+    assert "1/1000 exceed" in out
+
+
+def test_array_diff_formatter_shape_mismatch():
+    out = ArrayDiffFormatter()((np.ones(3, np.float32), np.ones(4, np.float32)))
+    assert "shape mismatch" in out
