@@ -40,23 +40,23 @@ import jax
 import equinox as eqx
 from clouseau import inspector
 
-keys = jax.random.split(jax.random.PRNGKey(918832), 3)
+keys = jax.random.split(jax.random.PRNGKey(918832), 4)
 
 model = eqx.nn.Sequential([
-    eqx.nn.Linear(764, 100, keys[0]),
-    jax.nn.relu,
-    eqx.nn.Linear(100, 50, keys[1]),
-    jax.nn.relu,
-    eqx.nn.Linear(50, 10, keys[2]),
-    jax.nn.sigmoid,
+    eqx.nn.Linear(764, 100, key=keys[0]),
+    eqx.nn.Lambda(jax.nn.relu),
+    eqx.nn.Linear(100, 50, key=keys[1]),
+    eqx.nn.Lambda(jax.nn.relu),
+    eqx.nn.Linear(50, 10, key=keys[2]),
+    eqx.nn.Lambda(jax.nn.sigmoid),
 ])
-x = jax.random.normal(jax.random.PRNGKey(0), (764,))
+x = jax.random.normal(keys[3], (764,))
 
 def is_leaf(path, node):
     return isinstance(node, jax.Array) or node in (jax.nn.relu, jax.nn.sigmoid)
 
 with inspector.tail(model, is_leaf=is_leaf) as m:
-    m(x)
+    m(x).block_until_ready()
 ```
 
 Then in an interactive session inspect the recorded activations:
@@ -79,22 +79,27 @@ Where `--key-pattern` will accept any regular expression to match the path of ar
 ### PyTorch Example
 
 ```python
+from collections import OrderedDict
+
+import torch
 from torch import nn
 from clouseau import inspector
 
-model = nn.Sequential({
-    "dense1": nn.Linear(764, 100),
-    "act1": nn.ReLU(),
-    "dense2": nn.Linear(100, 50),
-    "act2": nn.ReLU(),
-    "output": nn.Linear(50, 10),
-    "outact": nn.Sigmoid(),
-})
+model = nn.Sequential(OrderedDict([
+    ("dense1", nn.Linear(764, 100)),
+    ("act1", nn.ReLU()),
+    ("dense2", nn.Linear(100, 50)),
+    ("act2", nn.ReLU()),
+    ("output", nn.Linear(50, 10)),
+    ("outact", nn.Sigmoid()),
+]))
 
 x = torch.randn((764,))
 
 with inspector.tail(model) as m:
     m(x)
 ```
+
+Both examples are available as runnable scripts in the [`examples/`](examples) folder.
 
 For more advanced usage including filtering layer types, please refer to the [documentation](https://adonath.github.io/clouseau/).
