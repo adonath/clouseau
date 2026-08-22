@@ -13,6 +13,7 @@ import jax
 from clouseau import inspector
 
 PATH = ".clouseau"
+FILENAME_PATTERN = "activations-{idx:03d}-jax.safetensors"
 
 keys = jax.random.split(jax.random.PRNGKey(918832), 4)
 
@@ -33,8 +34,10 @@ def is_leaf(path: tuple[Any, ...], node: Any) -> bool:
 
 
 if __name__ == "__main__":
-    with inspector.tail(model, path=PATH, is_leaf=is_leaf) as m:
+    with inspector.tail(
+        model, path=PATH, is_leaf=is_leaf, filename_pattern=FILENAME_PATTERN
+    ) as m:
         # block, so the async io callbacks complete before the cache is flushed
         m(x).block_until_ready()
 
-    inspector.magnify(f"{PATH}/activations-000.safetensors")
+    inspector.magnify(f"{PATH}/" + FILENAME_PATTERN.format(idx=0))

@@ -13,6 +13,7 @@ from torch import nn
 from clouseau import inspector
 
 PATH = ".clouseau"
+FILENAME_PATTERN = "activations-{idx:03d}-torch.safetensors"
 
 model = nn.Sequential(
     OrderedDict([
@@ -29,7 +30,7 @@ x = torch.randn((764,))
 
 
 if __name__ == "__main__":
-    with inspector.tail(model, path=PATH) as m:
+    with inspector.tail(model, path=PATH, filename_pattern=FILENAME_PATTERN) as m:
         m(x)
 
-    inspector.magnify(f"{PATH}/activations-000-torch.safetensors")
+    inspector.magnify(f"{PATH}/" + FILENAME_PATTERN.format(idx=0))
