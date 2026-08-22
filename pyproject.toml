@@ -58,11 +58,11 @@ build-backend = "setuptools.build_meta"
 clouseau = "clouseau.__main__:main"
 
 [tool.setuptools.packages.find]
-include = ["clouseau"]
+include = ["clouseau", "examples"]
 exclude = ["tests"]
 
 [tool.ty.src]
-include = ["clouseau"]
+include = ["clouseau", "examples"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

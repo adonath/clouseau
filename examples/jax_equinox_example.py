@@ -5,6 +5,8 @@ Run with::
     uv run python examples/jax_equinox_example.py
 """
 
+from typing import Any
+
 import equinox as eqx
 import jax
 
@@ -26,7 +28,7 @@ model = eqx.nn.Sequential([
 x = jax.random.normal(keys[3], (764,))
 
 
-def is_leaf(path, node):
+def is_leaf(path: tuple[Any, ...], node: Any) -> bool:
     return isinstance(node, jax.Array) or node in (jax.nn.relu, jax.nn.sigmoid)
 
 
