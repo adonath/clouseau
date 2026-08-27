@@ -32,4 +32,4 @@ if __name__ == "__main__":
     with inspector.tail(model, path=PATH) as m:
         m(x)
 
-    inspector.magnify(f"{PATH}/activations-000.safetensors")
+    inspector.magnify(f"{PATH}/activations-000-torch.safetensors")
