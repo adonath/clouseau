@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass
 from functools import partial
 from typing import Any, Callable, Union
@@ -7,7 +8,9 @@ import jax.experimental
 import numpy as np
 from jax.tree_util import GetAttrKey, SequenceKey, register_dataclass
 
-from .io_utils import PATH_SEP, ArrayCache
+from .io_utils import PATH_SEP, ArrayCache, flatten_output
+
+log = logging.getLogger(__name__)
 
 JaxKeys = Union[GetAttrKey, SequenceKey]  # type: ignore[no-any-unimported]
 
@@ -59,10 +62,17 @@ def get_node_types(treedef: Any) -> list[type]:
 
 def add_to_cache_jax(x: AnyArray, key: str, cache: ArrayCache) -> Any:
     """Add a intermediate x to the given cache"""
-    # np.asarray forces a host copy so accumulated activations do not pile up in
-    # device memory; io_callback already breaks the gradient path, so there is no
-    # need for an explicit stop_gradient here.
-    cache.add(key, np.asarray(x))
+    for sub_key, value in flatten_output(x, key):
+        if not isinstance(value, (np.ndarray, jax.Array)):
+            log.debug(f"Skipping non array output for `{sub_key}`")
+            continue
+
+        # np.asarray forces a host copy so accumulated activations do not pile up
+        # in device memory; io_callback already breaks the gradient path, so there
+        # is no need for an explicit stop_gradient here.
+        # atleast_1d gives scalar outputs an axis to be concatenated along
+        cache.add(sub_key, np.atleast_1d(np.asarray(value)))
+
     return x
 
 

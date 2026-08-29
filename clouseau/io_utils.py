@@ -2,6 +2,7 @@ import json
 import logging
 import re
 from collections import defaultdict
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
@@ -45,6 +46,23 @@ def unflatten_dict(d: dict[str, Any], sep: str = PATH_SEP) -> dict[str, Any]:
         d[parts[-1]] = value
 
     return result
+
+
+def flatten_output(
+    output: Any, key: str, sep: str = PATH_SEP
+) -> Iterator[tuple[str, Any]]:
+    """Flatten a possibly nested tuple output into (key, value) pairs.
+
+    Layer outputs are frequently tuples, e.g. an attention module returning
+    ``(output, weights)``. Each entry is recorded under its own sub-key, so
+    `key` becomes `key.0`, `key.1`, and nested tuples nest further. Anything
+    that is not a tuple or list is yielded unchanged under `key`.
+    """
+    if isinstance(output, (tuple, list)):
+        for idx, item in enumerate(output):
+            yield from flatten_output(item, f"{key}{sep}{idx}", sep=sep)
+    else:
+        yield key, output
 
 
 def save_to_safetensors_jax(x: dict[str, list[AnyArray]], filename: str | Path) -> None:

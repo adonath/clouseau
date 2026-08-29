@@ -55,6 +55,28 @@ class TorchModel(torch.nn.Module):
         return self.sub_model(x)
 
 
+class TorchTupleModel(torch.nn.Module):
+    """Returns a nested tuple, as attention modules commonly do"""
+
+    def __init__(self):
+        super().__init__()
+        self.linear = torch.nn.Linear(2, 2)
+
+    def forward(self, x):
+        out = self.linear(x)
+        return out, (out.sum(), None)
+
+
+@register_dataclass
+@dataclass
+class TupleLinear:
+    weight: jax.Array
+
+    def __call__(self, x):
+        out = jnp.dot(x, self.weight)
+        return out, (jnp.sum(out), None)
+
+
 class EqxSubModel(eqx.Module):
     linear: eqx.nn.Linear
 
@@ -126,6 +148,66 @@ def test_torch(tmp_path):
         tmp_path / "activations-000.safetensors", framework="torch"
     )
     assert tuple(data.keys()) == ("sub_model.linear.__call__", "sub_model.__call__")
+
+
+def test_torch_tuple_output(tmp_path):
+    m = TorchTupleModel()
+
+    x = torch.ones((2, 2))
+
+    with inspector.tail(
+        m, tmp_path, filter_=lambda p, _: isinstance(_, TorchTupleModel)
+    ) as fm:
+        fm(x)
+
+    data = inspector.read_from_safetensors(
+        tmp_path / "activations-000.safetensors", framework="torch"
+    )
+    # each tuple entry gets its own sub-key, `None` is skipped
+    assert tuple(data.keys()) == (".__call__.0", ".__call__.1.0")
+    assert data[".__call__.0"].shape == (2, 2)
+    # a scalar entry is promoted so it can be concatenated across passes
+    assert data[".__call__.1.0"].shape == (1,)
+
+
+def test_jax_tuple_output(tmp_path):
+    m = Model(SubModel(TupleLinear(jnp.ones((2, 2)))))
+
+    x = jnp.ones((2, 2))
+
+    with inspector.tail(
+        m, tmp_path, filter_=lambda p, _: isinstance(_, TupleLinear)
+    ) as fm:
+        fm(x)[0].block_until_ready()
+
+    data = inspector.read_from_safetensors(
+        tmp_path / "activations-000.safetensors", framework="jax"
+    )
+    assert tuple(data.keys()) == (
+        "sub_model.linear.__call__.0",
+        "sub_model.linear.__call__.1.0",
+    )
+    assert data["sub_model.linear.__call__.0"].shape == (2, 2)
+    assert data["sub_model.linear.__call__.1.0"].shape == (1,)
+
+
+def test_tuple_output_across_passes(tmp_path):
+    # sub-keys must stay stable and accumulate over repeated forward passes
+    m = TorchTupleModel()
+
+    x = torch.ones((2, 2))
+
+    with inspector.tail(
+        m, tmp_path, filter_=lambda p, _: isinstance(_, TorchTupleModel)
+    ) as fm:
+        for _ in range(3):
+            fm(x)
+
+    data = inspector.read_from_safetensors(
+        tmp_path / "activations-000.safetensors", framework="torch"
+    )
+    assert data[".__call__.0"].shape == (6, 2)
+    assert data[".__call__.1.0"].shape == (3,)
 
 
 def test_equinox(tmp_path):

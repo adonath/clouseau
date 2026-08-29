@@ -5,7 +5,7 @@ from typing import Any
 import torch
 from torch import nn
 
-from .io_utils import PATH_SEP, ArrayCache
+from .io_utils import PATH_SEP, ArrayCache, flatten_output
 
 log = logging.getLogger(__file__)
 
@@ -13,17 +13,19 @@ log = logging.getLogger(__file__)
 def add_to_cache_torch(key: str, cache: ArrayCache) -> Callable:
     """Add a intermediate x to the given cache"""
 
-    def hook(module: nn.Module, input_: Any, output: torch.Tensor) -> None:
+    def hook(module: nn.Module, input_: Any, output: Any) -> None:
         key_full = key + PATH_SEP + "__call__"
-        if isinstance(output, tuple):
-            log.warning(
-                f"Output for `{key_full}` is a tuple, choosing first entry only."
-            )
-            output = output[0]
 
-        # move to host so accumulated activations do not pile up in device memory;
-        # copy=True guarantees an independent buffer even when already on CPU
-        cache.add(key_full, output.detach().to("cpu", copy=True))
+        for sub_key, value in flatten_output(output, key_full):
+            if not isinstance(value, torch.Tensor):
+                log.debug(f"Skipping non tensor output for `{sub_key}`")
+                continue
+
+            # move to host so accumulated activations do not pile up in device memory;
+            # copy=True guarantees an independent buffer even when already on CPU
+            # atleast_1d gives scalar outputs an axis to be concatenated along
+            value = torch.atleast_1d(value.detach())
+            cache.add(sub_key, value.to("cpu", copy=True))
 
     return hook
 
